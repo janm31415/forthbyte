@@ -1,0 +1,6 @@
+[submodule "cpp-rrb"]
+	path = cpp-rrb
+	url = https://github.com/janm31415/cpp-rrb
+[submodule "jtk"]
+	path = jtk
+	url = https://github.com/janm31415/jtk
