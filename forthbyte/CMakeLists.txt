@@ -16,10 +16,15 @@ if (UNIX)
 endif (UNIX)
 
 set(HDRS
-
+buffer.h
+engine.h
+keyboard.h
     )
 	
 set(SRCS
+buffer.cpp
+engine.cpp
+keyboard.cpp
 main.cpp
 )
 

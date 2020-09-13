@@ -5,6 +5,8 @@
 #include <iostream>
 #include <stdlib.h>
 
+#include "engine.h"
+
 extern "C"
   {
 #include <sdl2/pdcsdl.h>
@@ -34,9 +36,6 @@ int main(int argc, char** argv)
   /* Initialize PDCurses */
 
   {
-  uint32_t rmask = 0x000000ff;
-  uint32_t gmask = 0x0000ff00;
-  uint32_t bmask = 0x00ff0000;
 
   initscr();
   }
@@ -46,8 +45,8 @@ int main(int argc, char** argv)
 
   PDC_set_title("forthbyte");
 
-  //engine e(w, h, argc, argv, read_settings(get_file_in_executable_path("jam_settings.json").c_str()));
-  //e.run();
+  engine e(w, h, argc, argv);
+  e.run();
 
 
   endwin();
