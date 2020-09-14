@@ -9,6 +9,7 @@ file_buffer make_empty_buffer()
   file_buffer fb;  
   fb.pos.row = fb.pos.col = 0;
   fb.start_selection = std::nullopt;
+  fb.modification_mask = 0;
   return fb;
   }
 
@@ -85,8 +86,28 @@ file_buffer clear_selection(file_buffer fb)
   return fb;
   }
 
-file_buffer insert(file_buffer fb, const std::string& txt)
+file_buffer push_undo(file_buffer fb)
   {
+  snapshot ss;
+  ss.content = fb.content;
+  ss.pos = fb.pos;
+  ss.start_selection = fb.start_selection;
+  ss.modification_mask = fb.modification_mask;
+  fb.history = fb.history.push_back(ss);
+  fb.undo_redo_index = fb.history.size();
+  return fb;
+  }
+
+file_buffer insert(file_buffer fb, const std::string& txt, bool save_undo)
+  {
+  if (save_undo)
+    fb = push_undo(fb);
+
+  if (fb.start_selection)
+    fb = erase(fb, false);
+
+  fb.modification_mask |= 1;
+
   std::wstring wtxt = jtk::convert_string_to_wstring(txt);
   auto pos = get_actual_position(fb);
 
@@ -135,8 +156,57 @@ file_buffer insert(file_buffer fb, const std::string& txt)
   return fb;
   }
 
-file_buffer erase(file_buffer fb)
+file_buffer insert(file_buffer fb, text txt, bool save_undo)
   {
+  if (save_undo)
+    fb = push_undo(fb);
+
+  if (fb.start_selection)
+    fb = erase(fb, false);
+
+  fb.modification_mask |= 1;
+
+  if (fb.content.empty())
+    {
+    fb.content = txt;
+    return fb;
+    }
+
+  if (txt.empty())
+    return fb;
+
+  auto pos = get_actual_position(fb);
+
+  auto ln1 = fb.content[pos.row].take(pos.col);
+  auto ln2 = fb.content[pos.row].drop(pos.col);  
+
+  if (txt.size() == 1)
+    {
+    auto new_line = ln1 + txt[0] + ln2;
+    fb.content = fb.content.set(pos.row, new_line);
+    fb.pos.col = ln1.size() + txt[0].size();
+    }
+  else
+    {
+    fb.pos.col = txt.back().size();
+    fb.pos.row += txt.size()-1;
+    ln1 = ln1 + txt[0];
+    ln2 = txt.back() + ln2;
+    txt = txt.set(0, ln1);
+    txt = txt.set(txt.size() - 1, ln2);
+    fb.content = fb.content.take(pos.row) + txt + fb.content.drop(pos.row+1);    
+    }
+
+  return fb;
+  }
+
+file_buffer erase(file_buffer fb, bool save_undo)
+  {
+  if (save_undo)
+    fb = push_undo(fb);
+
+  fb.modification_mask |= 1;
+
   if (!fb.start_selection)
     {
     auto pos = get_actual_position(fb);
@@ -165,7 +235,7 @@ file_buffer erase(file_buffer fb)
       fb.content = fb.content.set(p1.row, fb.content[p1.row].erase(p1.col, p2.col));
       fb.pos.col = p1.col;
       fb.pos.row = p1.row;
-      fb = erase_right(fb);
+      fb = erase_right(fb, false);
       }
     else
       {
@@ -178,14 +248,19 @@ file_buffer erase(file_buffer fb)
       fb.content = fb.content.set(p1.row, fb.content[p1.row].erase(p1.col, fb.content[p1.row].size()-1));
       fb.pos.col = p1.col;
       fb.pos.row = p1.row;
-      fb = erase_right(fb);     
+      fb = erase_right(fb, false);     
       }    
     }
   return fb;
   }
 
-file_buffer erase_right(file_buffer fb)
+file_buffer erase_right(file_buffer fb, bool save_undo)
   {
+  if (save_undo)
+    fb = push_undo(fb);
+
+  fb.modification_mask |= 1;
+
   if (!fb.start_selection)
     {
     if (fb.content.empty())
@@ -203,5 +278,36 @@ file_buffer erase_right(file_buffer fb)
     return fb;
     }
   else
-    return erase(fb);
+    return erase(fb, false);
+  }
+
+text get_selection(file_buffer fb)
+  {
+  if (!fb.start_selection)
+    return text();
+  auto p1 = get_actual_position(fb);
+  auto p2 = *fb.start_selection;
+  if (p2 < p1)
+    std::swap(p1, p2);
+
+  if (p1.row == p2.row)
+    {
+    line ln = fb.content[p1.row].slice(p1.col, p2.col + 1);
+    text t;
+    t = t.push_back(ln);
+    return t;
+    }
+
+  text out;
+  auto trans = out.transient();
+
+  line ln1 = fb.content[p1.row].drop(p1.col);
+  trans.push_back(ln1);
+  for (int64_t r = p1.row + 1; r < p2.row; ++r)
+    trans.push_back(fb.content[r]);
+  line ln2 = fb.content[p2.row].take(p2.col + 1);
+  trans.push_back(ln2);
+
+  out = trans.persistent();
+  return out;
   }

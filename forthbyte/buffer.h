@@ -29,12 +29,23 @@ struct position
     }
   };
 
+struct snapshot
+  {
+  text content;
+  position pos;
+  std::optional<position> start_selection;
+  uint8_t modification_mask;
+  };
+
 struct file_buffer
   {
   text content;
   std::string name;
   position pos;
   std::optional<position> start_selection;
+  immutable::vector<snapshot, false> history;
+  uint64_t undo_redo_index;
+  uint8_t modification_mask;
   };
 
 position get_actual_position(file_buffer fb);
@@ -47,8 +58,14 @@ file_buffer start_selection(file_buffer fb);
 
 file_buffer clear_selection(file_buffer fb);
 
-file_buffer insert(file_buffer fb, const std::string& txt);
+file_buffer insert(file_buffer fb, const std::string& txt, bool save_undo = true);
 
-file_buffer erase(file_buffer fb);
+file_buffer insert(file_buffer fb, text txt, bool save_undo = true);
 
-file_buffer erase_right(file_buffer fb);
+file_buffer erase(file_buffer fb, bool save_undo = true);
+
+file_buffer erase_right(file_buffer fb, bool save_undo = true);
+
+file_buffer push_undo(file_buffer fb);
+
+text get_selection(file_buffer fb);

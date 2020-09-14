@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "buffer.h"
+#include "clipboard.h"
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <curses.h>
@@ -10,6 +11,8 @@ extern "C"
   }
 
 #include "keyboard.h"
+
+#include <jtk/file_utils.h>
 
 #define TAB_SPACE 8
 
@@ -334,6 +337,62 @@ app_state stop_selection(app_state state)
   return state;
   }
 
+app_state undo(app_state state)
+  {
+  if (state.buffer.undo_redo_index == state.buffer.history.size()) // first time undo
+    {
+    state.buffer = push_undo(state.buffer);
+    --state.buffer.undo_redo_index;
+    }
+  if (state.buffer.undo_redo_index)
+    {
+    --state.buffer.undo_redo_index;
+    snapshot ss = state.buffer.history[(uint32_t)state.buffer.undo_redo_index];
+    state.buffer.content = ss.content;
+    state.buffer.pos = ss.pos;
+    state.buffer.modification_mask = ss.modification_mask;
+    state.buffer.start_selection = ss.start_selection;
+    state.buffer.history = state.buffer.history.push_back(ss);
+    }
+  return state;
+  }
+
+app_state redo(app_state state)
+  {
+  if (state.buffer.undo_redo_index + 1 < state.buffer.history.size())
+    {
+    ++state.buffer.undo_redo_index;
+    snapshot ss = state.buffer.history[(uint32_t)state.buffer.undo_redo_index];
+    state.buffer.content = ss.content;
+    state.buffer.pos = ss.pos;
+    state.buffer.modification_mask = ss.modification_mask;
+    state.buffer.start_selection = ss.start_selection;
+    state.buffer.history = state.buffer.history.push_back(ss);
+    }
+  return state;
+  }
+
+app_state copy_to_snarf_buffer(app_state state)
+  {
+  state.snarf_buffer = get_selection(state.buffer);
+#ifdef _WIN32
+  std::wstring txt;
+  for (const auto& ln : state.snarf_buffer)
+    {
+    for (const auto& ch : ln)
+      txt.push_back(ch);
+    }
+  copy_to_windows_clipboard(jtk::convert_wstring_to_string(txt));
+#endif
+  return state;
+  }
+
+app_state paste_from_snarf_buffer(app_state state)
+  {
+  state.buffer = insert(state.buffer, state.snarf_buffer);
+  return state;
+  }
+
 std::optional<app_state> process_input(app_state state)
   {
   SDL_Event event;
@@ -384,6 +443,36 @@ std::optional<app_state> process_input(app_state state)
           if (state.buffer.start_selection == std::nullopt)
             state.buffer.start_selection = get_actual_position(state);
           return state;
+          }
+          case SDLK_c:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+            {
+            return copy_to_snarf_buffer(state);
+            }
+          }
+          case SDLK_v:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+            {
+            return paste_from_snarf_buffer(state);
+            }
+          }
+          case SDLK_y:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+            {
+            return redo(state);
+            }
+          break;
+          }
+          case SDLK_z: 
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+            {
+            return undo(state);
+            }
+          break;
           }
           } // switch (event.key.keysym.sym)
         break;

@@ -6,6 +6,7 @@ struct app_state
   {
   file_buffer buffer;
   int64_t scroll_row;  
+  text snarf_buffer;
   };
 
 

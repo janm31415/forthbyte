@@ -17,12 +17,14 @@ endif (UNIX)
 
 set(HDRS
 buffer.h
+clipboard.h
 engine.h
 keyboard.h
     )
 	
 set(SRCS
 buffer.cpp
+clipboard.cpp
 engine.cpp
 keyboard.cpp
 main.cpp
