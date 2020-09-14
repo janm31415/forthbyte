@@ -16,10 +16,15 @@ extern "C"
 
 #define TAB_SPACE 8
 
+namespace
+  {
+  int font_width, font_height;
+  }
+
 void get_editor_window_size(int& rows, int& cols)
   {
   getmaxyx(stdscr, rows, cols);
-  rows -= 2;
+  rows -= 4;
   }
 
 uint32_t character_width(uint32_t character, int64_t col)
@@ -51,22 +56,147 @@ uint16_t character_to_pdc_char(uint32_t character, uint32_t char_id)
     }
   }
 
-position get_actual_position(app_state state)
+void write_center(std::wstring& out, const std::wstring& in)
   {
-  return get_actual_position(state.buffer);
+  if (in.length() > out.length())
+    out = in.substr(0, out.length());
+  else
+    {
+    size_t offset = (out.length() - in.length()) / 2;
+    for (size_t j = 0; j < in.length(); ++j)
+      out[offset + j] = in[j];
+    }
+  }
+
+void write_right(std::wstring& out, const std::wstring& in)
+  {
+  if (in.length() > out.length())
+    out = in.substr(0, out.length());
+  else
+    {
+    size_t offset = (out.length() - in.length());
+    for (size_t j = 0; j < in.length(); ++j)
+      out[offset + j] = in[j];
+    }
+  }
+
+void write_left(std::wstring& out, const std::wstring& in)
+  {
+  if (in.length() > out.length())
+    out = in.substr(0, out.length());
+  else
+    {
+    for (size_t j = 0; j < in.length(); ++j)
+      out[j] = in[j];
+    }
+  }
+
+
+void draw_title_bar(app_state state)
+  {
+  int rows, cols;
+  getmaxyx(stdscr, rows, cols);
+  attrset(A_NORMAL);
+  attron(A_REVERSE);
+  attron(A_BOLD);
+  std::wstring title_bar(cols, ' ');
+
+  std::wstring filename = L"file: " + (state.buffer.name.empty() ? std::wstring(L"<noname>") : jtk::convert_string_to_wstring(state.buffer.name));
+  write_center(title_bar, filename);
+
+  if ((state.buffer.modification_mask & 1) == 1)
+    write_right(title_bar, L" Modified ");
+
+  for (int i = 0; i < cols; ++i)
+    {
+    move(0, i);
+    addch(title_bar[i]);
+    }
+  }
+
+
+void draw_line(line ln, position& current, position cursor, std::vector<chtype>& attribute_stack, int r, int xoffset, int maxcol, std::optional<position> start_selection)
+  {
+  bool has_selection = start_selection != std::nullopt;
+
+  auto it = ln.begin();
+  auto it_end = ln.end();
+
+  for (; it != it_end; ++it)
+    {
+    if (current.col >= maxcol)
+      break;
+
+    if (current == cursor)
+      {
+      attribute_stack.push_back(A_REVERSE);
+      if (has_selection && (cursor < start_selection))
+        {
+        attribute_stack.push_back(A_REVERSE);
+        }
+      attron(A_REVERSE);
+      }
+    if (has_selection && (current == start_selection) && (start_selection < cursor))
+      {
+      attribute_stack.push_back(A_REVERSE);
+      attron(A_REVERSE);
+      }
+
+    move((int)r, (int)current.col + xoffset);
+    auto character = *it;
+    uint32_t cwidth = character_width(character, current.col);
+    for (uint32_t cnt = 0; cnt < cwidth; ++cnt)
+      {
+      addch(character_to_pdc_char(character, cnt));
+      }
+
+    if (current == cursor)
+      {
+      attroff(attribute_stack.back());
+      attribute_stack.pop_back();
+      if (has_selection && (start_selection < cursor))
+        {
+        attroff(attribute_stack.back());
+        attribute_stack.pop_back();
+        }
+      attron(attribute_stack.back());
+      }
+    if (has_selection && (current == start_selection) && (cursor < start_selection))
+      {
+      attroff(attribute_stack.back());
+      attribute_stack.pop_back();
+      attron(attribute_stack.back());
+      }
+
+    ++current.col;
+    }
+  }
+
+std::string get_operation_text(e_operation op)
+  {
+  switch (op)
+    {
+    case op_open: return std::string("Open file: ");
+    default: return std::string();
+    }
   }
 
 app_state draw(app_state state)
   {
   erase();
 
+  draw_title_bar(state);
+
+  int offset_x = 0;
+  int offset_y = 1;
+
   int maxrow, maxcol;
-  get_editor_window_size(maxrow, maxcol);  
+  get_editor_window_size(maxrow, maxcol);
 
   position current;
   current.row = state.scroll_row;
 
-  position cursor = get_actual_position(state);
+  position cursor = get_actual_position(state.buffer);
 
   bool has_selection = state.buffer.start_selection != std::nullopt;
 
@@ -80,7 +210,7 @@ app_state draw(app_state state)
     attron(A_REVERSE);
     attribute_stack.push_back(A_REVERSE);
     }
- 
+
   //if (cursor.col > state.buffer.content[cursor.row].size())
   //  cursor.col = state.buffer.content[cursor.row].size();
 
@@ -97,57 +227,13 @@ app_state draw(app_state state)
         }
       break;
       }
+    
 
-    auto it = state.buffer.content[current.row].begin();
-    auto it_end = state.buffer.content[current.row].end();
-
-    for (; it != it_end; ++it)
-      {
-      if (current.col >= maxcol)
-        break;
-
-      if (current == cursor)
-        {    
-        attribute_stack.push_back(A_REVERSE);
-        if (has_selection && (cursor < state.buffer.start_selection))
-          {
-          attribute_stack.push_back(A_REVERSE);
-          }
-        attron(A_REVERSE);
-        }
-      if (has_selection && (current == state.buffer.start_selection) && (state.buffer.start_selection < cursor))
-        {
-        attribute_stack.push_back(A_REVERSE);
-        attron(A_REVERSE);
-        }
-
-      move((int)r, (int)current.col);
-      auto character = *it;
-      uint32_t cwidth = character_width(character, current.col);
-      for (uint32_t cnt = 0; cnt < cwidth; ++cnt)
-        {
-        addch(character_to_pdc_char(character, cnt));
-        }
-
-      if (current == cursor)
-        {
-        attribute_stack.pop_back();
-        if (has_selection && (state.buffer.start_selection < cursor))
-          attribute_stack.pop_back();
-        attrset(attribute_stack.back());
-        }
-      if (has_selection && (current == state.buffer.start_selection) && (cursor < state.buffer.start_selection))
-        {
-        attribute_stack.pop_back();
-        attrset(attribute_stack.back());
-        }
-
-      ++current.col;
-      }
+    draw_line(state.buffer.content[current.row], current, cursor, attribute_stack, r + offset_y, offset_x, maxcol, state.buffer.start_selection);
 
     if ((current == cursor))// && (current.row == state.buffer.content.size() - 1) && (current.col == state.buffer.content.back().size()))// only occurs on last line, last position
       {
-      move((int)r, (int)current.col);
+      move((int)r + offset_y, (int)current.col + offset_x);
       assert(current.row == state.buffer.content.size() - 1);
       assert(current.col == state.buffer.content.back().size());
       attron(A_REVERSE);
@@ -158,7 +244,34 @@ app_state draw(app_state state)
     ++current.row;
     }
 
+  if (state.operation != op_editing)
+    {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+    cursor = get_actual_position(state.operation_buffer);
+    current.col = 0;
+    current.row = 0;
+    std::string txt = get_operation_text(state.operation);
+    move((int)rows - 3, 0);
+    attrset(A_BOLD);
+    attribute_stack.push_back(A_BOLD);
+    for (auto ch : txt)
+      addch(ch);
 
+    int cols_available = maxcol - txt.length();
+    int off_x = offset_x + txt.length();
+    if (!state.operation_buffer.content.empty())
+      draw_line(state.operation_buffer.content[0], current, cursor, attribute_stack, rows-3, off_x, cols_available, state.operation_buffer.start_selection);
+    if ((current == cursor))
+      {
+      move((int)rows - 3, (int)current.col + off_x);
+      attron(A_REVERSE);
+      addch(' ');
+      attroff(A_REVERSE);
+      }
+    attribute_stack.pop_back();
+    attrset(attribute_stack.back());
+    }
 
   curs_set(0);
   refresh();
@@ -179,19 +292,32 @@ app_state check_scroll_position(app_state state)
   return state;
   }
 
-app_state cancel_selection(app_state state)
+app_state check_operation_buffer(app_state state)
   {
-  if (!keyb_data.selecting)
-    state.buffer = clear_selection(state.buffer);
+  if (state.operation_buffer.content.size() > 1)
+    state.operation_buffer.content = state.operation_buffer.content.take(1);
+  state.operation_buffer.pos.row = 0;
   return state;
   }
 
-app_state move_left(app_state state)
+app_state cancel_selection(app_state state)
+  {
+  if (!keyb_data.selecting)
+    {
+    if (state.operation == op_editing)
+      state.buffer = clear_selection(state.buffer);
+    else
+      state.operation_buffer = clear_selection(state.operation_buffer);
+    }
+  return state;
+  }
+
+app_state move_left_editor(app_state state)
   {
   state = cancel_selection(state);
   if (state.buffer.content.empty())
     return state;
-  position actual = get_actual_position(state);
+  position actual = get_actual_position(state.buffer);
   if (actual.col == 0)
     {
     if (state.buffer.pos.row > 0)
@@ -201,18 +327,37 @@ app_state move_left(app_state state)
       }
     }
   else
-    state.buffer.pos.col = actual.col-1;
+    state.buffer.pos.col = actual.col - 1;
   return check_scroll_position(state);
   }
 
-app_state move_right(app_state state)
+app_state move_left_operation(app_state state)
+  {
+  state = cancel_selection(state);
+  if (state.operation_buffer.content.empty())
+    return state;
+  position actual = get_actual_position(state.operation_buffer);
+  if (actual.col > 0)
+    state.operation_buffer.pos.col = actual.col - 1;
+  state.operation_buffer.pos.row = 0;
+  return state;
+  }
+
+app_state move_left(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_left_editor(state);
+  return move_left_operation(state);
+  }
+
+app_state move_right_editor(app_state state)
   {
   state = cancel_selection(state);
   if (state.buffer.content.empty())
     return state;
-  if (state.buffer.pos.col < (int64_t)state.buffer.content[state.buffer.pos.row].size()-1)
+  if (state.buffer.pos.col < (int64_t)state.buffer.content[state.buffer.pos.row].size() - 1)
     ++state.buffer.pos.col;
-  else if ((state.buffer.pos.row+1) < state.buffer.content.size())
+  else if ((state.buffer.pos.row + 1) < state.buffer.content.size())
     {
     state.buffer.pos.col = 0;
     ++state.buffer.pos.row;
@@ -221,12 +366,30 @@ app_state move_right(app_state state)
     {
     ++state.buffer.pos.col;
     assert(state.buffer.pos.row == state.buffer.content.size() - 1);
-    assert(state.buffer.pos.col == state.buffer.content.back().size());    
+    assert(state.buffer.pos.col == state.buffer.content.back().size());
     }
   return check_scroll_position(state);
   }
 
-app_state move_up(app_state state)
+app_state move_right_operation(app_state state)
+  {
+  state = cancel_selection(state);
+  if (state.operation_buffer.content.empty())
+    return state;
+  if (state.operation_buffer.pos.col < (int64_t)state.operation_buffer.content[0].size())
+    ++state.operation_buffer.pos.col;
+  state.operation_buffer.pos.row = 0;
+  return state;
+  }
+
+app_state move_right(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_right_editor(state);
+  return move_right_operation(state);
+  }
+
+app_state move_up_editor(app_state state)
   {
   state = cancel_selection(state);
   if (state.buffer.pos.row > 0)
@@ -234,7 +397,14 @@ app_state move_up(app_state state)
   return check_scroll_position(state);
   }
 
-app_state move_down(app_state state)
+app_state move_up(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_up_editor(state);
+  return state;
+  }
+
+app_state move_down_editor(app_state state)
   {
   state = cancel_selection(state);
   if ((state.buffer.pos.row + 1) < state.buffer.content.size())
@@ -244,7 +414,14 @@ app_state move_down(app_state state)
   return check_scroll_position(state);
   }
 
-app_state move_page_up(app_state state)
+app_state move_down(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_down_editor(state);
+  return state;
+  }
+
+app_state move_page_up_editor(app_state state)
   {
   state = cancel_selection(state);
   int rows, cols;
@@ -257,11 +434,18 @@ app_state move_page_up(app_state state)
   state.buffer.pos.row -= rows - 1;
   if (state.buffer.pos.row < 0)
     state.buffer.pos.row = 0;
-    
+
   return check_scroll_position(state);
   }
 
-app_state move_page_down(app_state state)
+app_state move_page_up(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_page_up_editor(state);
+  return state;
+  }
+
+app_state move_page_down_editor(app_state state)
   {
   state = cancel_selection(state);
   int rows, cols;
@@ -279,14 +463,35 @@ app_state move_page_down(app_state state)
   return check_scroll_position(state);
   }
 
-app_state move_home(app_state state)
+app_state move_page_down(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_page_down_editor(state);
+  return state;
+  }
+
+app_state move_home_editor(app_state state)
   {
   state = cancel_selection(state);
   state.buffer.pos.col = 0;
   return state;
   }
 
-app_state move_end(app_state state)
+app_state move_home_operation(app_state state)
+  {
+  state = cancel_selection(state);
+  state.operation_buffer.pos.col = 0;
+  return state;
+  }
+
+app_state move_home(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_home_editor(state);
+  return move_home_operation(state);
+  }
+
+app_state move_end_editor(app_state state)
   {
   state = cancel_selection(state);
   if (state.buffer.content.empty())
@@ -304,23 +509,99 @@ app_state move_end(app_state state)
   return state;
   }
 
-app_state text_input(app_state state, const char* txt)
+app_state move_end_operation(app_state state)
+  {
+  state = cancel_selection(state);
+  if (state.operation_buffer.content.empty())
+    return state;
+
+  state.operation_buffer.pos.col = (int64_t)state.operation_buffer.content[0].size();
+  state.operation_buffer.pos.row = 0;
+  return state;
+  }
+
+app_state move_end(app_state state)
+  {
+  if (state.operation == op_editing)
+    return move_end_editor(state);
+  return move_end_operation(state);
+  }
+
+app_state text_input_editor(app_state state, const char* txt)
   {
   std::string t(txt);
   state.buffer = insert(state.buffer, t);
   return check_scroll_position(state);
   }
 
-app_state backspace(app_state state)
+app_state text_input_operation(app_state state, const char* txt)
+  {
+  std::string t(txt);
+  state.operation_buffer = insert(state.operation_buffer, t);
+  return check_operation_buffer(state);
+  }
+
+app_state text_input(app_state state, const char* txt)
+  {
+  if (state.operation == op_editing)
+    return text_input_editor(state, txt);
+  return text_input_operation(state, txt);
+  }
+
+app_state backspace_editor(app_state state)
   {
   state.buffer = erase(state.buffer);
   return check_scroll_position(state);
   }
 
-app_state del(app_state state)
+app_state backspace_operation(app_state state)
+  {
+  state.operation_buffer = erase(state.operation_buffer);
+  return check_operation_buffer(state);
+  }
+
+app_state backspace(app_state state)
+  {
+  if (state.operation == op_editing)
+    return backspace_editor(state);
+  return backspace_operation(state);
+  }
+
+app_state del_editor(app_state state)
   {
   state.buffer = erase_right(state.buffer);
   return check_scroll_position(state);
+  }
+
+app_state del_operation(app_state state)
+  {
+  state.operation_buffer = erase_right(state.operation_buffer);
+  return check_operation_buffer(state);
+  }
+
+app_state del(app_state state)
+  {
+  if (state.operation == op_editing)
+    return del_editor(state);
+  return del_operation(state);
+  }
+
+app_state ret_editor(app_state state)
+  {
+  return text_input(state, "\n");
+  }
+
+app_state ret_operation(app_state state)
+  {
+  state.operation = op_editing;
+  return state;
+  }
+
+app_state ret(app_state state)
+  {
+  if (state.operation == op_editing)
+    return ret_editor(state);
+  return ret_operation(state);
   }
 
 std::optional<app_state> exit(app_state state)
@@ -393,6 +674,17 @@ app_state paste_from_snarf_buffer(app_state state)
   return state;
   }
 
+app_state clear_operation_buffer(app_state state)
+  {
+  state.operation_buffer.content = text();
+  state.operation_buffer.history = immutable::vector<snapshot, false>();
+  state.operation_buffer.undo_redo_index = 0;
+  state.operation_buffer.start_selection = std::nullopt;
+  state.operation_buffer.pos.row = 0;
+  state.operation_buffer.pos.col = 0;
+  return state;
+  }
+
 std::optional<app_state> process_input(app_state state)
   {
   SDL_Event event;
@@ -410,7 +702,7 @@ std::optional<app_state> process_input(app_state state)
           {
           auto new_w = event.window.data1;
           auto new_h = event.window.data2;
-          resize_term(new_w, new_h);
+          resize_term(new_h / font_height, new_w / font_width);
           return state;
           }
         break;
@@ -430,8 +722,8 @@ std::optional<app_state> process_input(app_state state)
           case SDLK_PAGEUP: return move_page_up(state);
           case SDLK_PAGEDOWN: return move_page_down(state);
           case SDLK_HOME: return move_home(state);
-          case SDLK_END: return move_end(state);   
-          case SDLK_RETURN: return text_input(state, "\n");
+          case SDLK_END: return move_end(state);
+          case SDLK_RETURN: return ret(state);
           case SDLK_BACKSPACE: return backspace(state);
           case SDLK_DELETE: return del(state);
           case SDLK_LSHIFT:
@@ -440,8 +732,16 @@ std::optional<app_state> process_input(app_state state)
           if (keyb_data.selecting)
             break;
           keyb_data.selecting = true;
-          if (state.buffer.start_selection == std::nullopt)
-            state.buffer.start_selection = get_actual_position(state);
+          if (state.operation == op_editing)
+            {
+            if (state.buffer.start_selection == std::nullopt)
+              state.buffer.start_selection = get_actual_position(state.buffer);
+            }
+          else
+            {
+            if (state.operation_buffer.start_selection == std::nullopt)
+              state.operation_buffer.start_selection = get_actual_position(state.operation_buffer);
+            }
           return state;
           }
           case SDLK_c:
@@ -449,6 +749,14 @@ std::optional<app_state> process_input(app_state state)
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
             {
             return copy_to_snarf_buffer(state);
+            }
+          }
+          case SDLK_o:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+            {
+            state.operation = op_open;
+            return clear_operation_buffer(state);
             }
           }
           case SDLK_v:
@@ -466,7 +774,7 @@ std::optional<app_state> process_input(app_state state)
             }
           break;
           }
-          case SDLK_z: 
+          case SDLK_z:
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
             {
@@ -505,6 +813,7 @@ std::optional<app_state> process_input(app_state state)
 
 engine::engine(int w, int h, int argc, char** argv)
   {
+  TTF_SizeText(pdc_ttffont, "W", &font_width, &font_height);
   nodelay(stdscr, TRUE);
   noecho();
 
@@ -515,6 +824,7 @@ engine::engine(int w, int h, int argc, char** argv)
     state.buffer = read_from_file(std::string(argv[1]));
   else
     state.buffer = make_empty_buffer();
+  state.operation = op_editing;
   state.scroll_row = 0;
   }
 

@@ -48,6 +48,8 @@ struct file_buffer
   uint8_t modification_mask;
   };
 
+bool has_selection(file_buffer fb);
+
 position get_actual_position(file_buffer fb);
 
 file_buffer make_empty_buffer();

@@ -74,6 +74,11 @@ position get_actual_position(file_buffer fb)
   return out;
   }
 
+bool has_selection(file_buffer fb)
+  {
+  return (fb.start_selection && (*fb.start_selection != fb.pos));
+  }
+
 file_buffer start_selection(file_buffer fb)
   {
   fb.start_selection = get_actual_position(fb);
@@ -103,8 +108,10 @@ file_buffer insert(file_buffer fb, const std::string& txt, bool save_undo)
   if (save_undo)
     fb = push_undo(fb);
 
-  if (fb.start_selection)
+  if (has_selection(fb))
     fb = erase(fb, false);
+
+  fb.start_selection = std::nullopt;
 
   fb.modification_mask |= 1;
 
@@ -161,8 +168,10 @@ file_buffer insert(file_buffer fb, text txt, bool save_undo)
   if (save_undo)
     fb = push_undo(fb);
 
-  if (fb.start_selection)
+  if (has_selection(fb))
     fb = erase(fb, false);
+
+  fb.start_selection = std::nullopt;
 
   fb.modification_mask |= 1;
 
@@ -202,12 +211,15 @@ file_buffer insert(file_buffer fb, text txt, bool save_undo)
 
 file_buffer erase(file_buffer fb, bool save_undo)
   {
+  if (fb.content.empty())
+    return fb;
+
   if (save_undo)
     fb = push_undo(fb);
 
   fb.modification_mask |= 1;
 
-  if (!fb.start_selection)
+  if (!has_selection(fb))
     {
     auto pos = get_actual_position(fb);
     if (pos.col > 0)
@@ -261,7 +273,7 @@ file_buffer erase_right(file_buffer fb, bool save_undo)
 
   fb.modification_mask |= 1;
 
-  if (!fb.start_selection)
+  if (!has_selection(fb))
     {
     if (fb.content.empty())
       return fb;
@@ -283,7 +295,7 @@ file_buffer erase_right(file_buffer fb, bool save_undo)
 
 text get_selection(file_buffer fb)
   {
-  if (!fb.start_selection)
+  if (!has_selection(fb))
     return text();
   auto p1 = get_actual_position(fb);
   auto p2 = *fb.start_selection;
