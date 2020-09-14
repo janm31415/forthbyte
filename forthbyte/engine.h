@@ -5,8 +5,7 @@
 struct app_state
   {
   file_buffer buffer;
-  position scroll_pos;
-  int64_t word_wrap_row;
+  int64_t scroll_row;  
   };
 
 
