@@ -7,7 +7,7 @@
 
 
 typedef immutable::vector<wchar_t, false, 5> line;
-typedef immutable::vector<typename line, false, 5> text;
+typedef immutable::vector<immutable::vector<wchar_t, false, 5>, false, 5> text;
 
 struct position
   {

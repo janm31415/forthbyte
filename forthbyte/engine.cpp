@@ -1,6 +1,10 @@
 #include "engine.h"
-#include "buffer.h"
 #include "clipboard.h"
+
+#include "keyboard.h"
+
+#include <jtk/file_utils.h>
+
 #include <SDL.h>
 #include <SDL_syswm.h>
 #include <curses.h>
@@ -9,10 +13,6 @@ extern "C"
   {
 #include <sdl2/pdcsdl.h>
   }
-
-#include "keyboard.h"
-
-#include <jtk/file_utils.h>
 
 #define TAB_SPACE 8
 

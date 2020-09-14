@@ -70,7 +70,11 @@ position get_actual_position(file_buffer fb)
         out.col = fb.content[out.row].size();
       }
     else
-      out.col = max((int64_t)fb.content[out.row].size() - 1, 0);
+      {
+      out.col = (int64_t)fb.content[out.row].size() - 1;
+      if (out.col < 0)
+        out.col = 0;
+      }
     }
   return out;
   }
