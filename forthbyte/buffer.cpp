@@ -363,3 +363,16 @@ file_buffer redo(file_buffer fb)
     }
   return fb;
   }
+
+file_buffer select_all(file_buffer fb)
+  {
+  if (fb.content.empty())
+    return fb;
+  position pos;
+  pos.row = 0;
+  pos.col = 0;
+  fb.start_selection = pos;
+  fb.pos.row = fb.content.size() - 1;
+  fb.pos.col = fb.content.back().size();
+  return fb;
+  }

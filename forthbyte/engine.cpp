@@ -203,6 +203,11 @@ void draw_help_text(app_state state)
     draw_help_line(line1, rows - 2, cols);
     draw_help_line(line2, rows - 1, cols);
     }
+  if (state.operation == op_open)
+    {
+    static std::string line1("^X Cancel");
+    draw_help_line(line1, rows - 2, cols);
+    }
   }
 
 app_state draw(app_state state)
@@ -700,6 +705,18 @@ std::optional<app_state> exit(app_state state)
   return std::nullopt;
   }
 
+std::optional<app_state> cancel(app_state state)
+  {
+  if (state.operation == op_editing)
+    return exit(state);
+  else
+    {
+    state.message = string_to_line("[Cancelled]");
+    state.operation = op_editing;
+    }
+  return state;
+  }
+
 app_state stop_selection(app_state state)
   {
   if (keyb_data.selecting)
@@ -715,7 +732,7 @@ app_state undo(app_state state)
     state.buffer = undo(state.buffer);
   else
     state.operation_buffer = undo(state.operation_buffer);
-  return state;
+  return check_scroll_position(state);
   }
 
 app_state redo(app_state state)
@@ -724,7 +741,7 @@ app_state redo(app_state state)
     state.buffer = redo(state.buffer);
   else
     state.operation_buffer = redo(state.operation_buffer);
-  return state;
+  return check_scroll_position(state);
   }
 
 app_state copy_to_snarf_buffer(app_state state)
@@ -751,7 +768,16 @@ app_state paste_from_snarf_buffer(app_state state)
     state.buffer = insert(state.buffer, state.snarf_buffer);
   else
     state.operation_buffer = insert(state.operation_buffer, state.snarf_buffer);
-  return state;
+  return check_scroll_position(state);
+  }
+
+app_state select_all(app_state state)
+  {
+  if (state.operation == op_editing)
+    state.buffer = select_all(state.buffer);
+  else
+    state.operation_buffer = select_all(state.operation_buffer);
+  return check_scroll_position(state);
   }
 
 app_state clear_operation_buffer(app_state state)
@@ -824,16 +850,23 @@ std::optional<app_state> process_input(app_state state)
             }
           return state;
           }
+          case SDLK_a:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            return select_all(state);
+            }
+          }
           case SDLK_c:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             return copy_to_snarf_buffer(state);
             }
           }
           case SDLK_o:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
             {
             state.operation = op_open;
             return clear_operation_buffer(state);
@@ -841,14 +874,22 @@ std::optional<app_state> process_input(app_state state)
           }
           case SDLK_v:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             return paste_from_snarf_buffer(state);
             }
           }
+          case SDLK_x:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            return cancel(state);
+            }
+          break;
+          }
           case SDLK_y:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
             {
             return redo(state);
             }
@@ -856,7 +897,7 @@ std::optional<app_state> process_input(app_state state)
           }
           case SDLK_z:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) // undo
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
             {
             return undo(state);
             }

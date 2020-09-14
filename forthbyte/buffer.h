@@ -75,3 +75,5 @@ text get_selection(file_buffer fb);
 file_buffer undo(file_buffer fb);
 
 file_buffer redo(file_buffer fb);
+
+file_buffer select_all(file_buffer fb);
