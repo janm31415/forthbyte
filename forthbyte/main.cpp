@@ -43,7 +43,7 @@ int main(int argc, char** argv)
   start_color();
   scrollok(stdscr, TRUE);
 
-  PDC_set_title("forthbyte");
+  PDC_set_title("forthbyte beat machine");
 
   engine e(w, h, argc, argv);
   e.run();

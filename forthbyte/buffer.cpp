@@ -10,6 +10,7 @@ file_buffer make_empty_buffer()
   fb.pos.row = fb.pos.col = 0;
   fb.start_selection = std::nullopt;
   fb.modification_mask = 0;
+  fb.undo_redo_index = 0;
   return fb;
   }
 
@@ -322,4 +323,39 @@ text get_selection(file_buffer fb)
 
   out = trans.persistent();
   return out;
+  }
+
+file_buffer undo(file_buffer fb)
+  {
+  if (fb.undo_redo_index == fb.history.size()) // first time undo
+    {
+    fb = push_undo(fb);
+    --fb.undo_redo_index;
+    }
+  if (fb.undo_redo_index)
+    {
+    --fb.undo_redo_index;
+    snapshot ss = fb.history[(uint32_t)fb.undo_redo_index];
+    fb.content = ss.content;
+    fb.pos = ss.pos;
+    fb.modification_mask = ss.modification_mask;
+    fb.start_selection = ss.start_selection;
+    fb.history = fb.history.push_back(ss);
+    }
+  return fb;
+  }
+
+file_buffer redo(file_buffer fb)
+  {
+  if (fb.undo_redo_index + 1 < fb.history.size())
+    {
+    ++fb.undo_redo_index;
+    snapshot ss = fb.history[(uint32_t)fb.undo_redo_index];
+    fb.content = ss.content;
+    fb.pos = ss.pos;
+    fb.modification_mask = ss.modification_mask;
+    fb.start_selection = ss.start_selection;
+    fb.history = fb.history.push_back(ss);
+    }
+  return fb;
   }

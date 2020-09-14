@@ -42,17 +42,10 @@ uint16_t character_to_pdc_char(uint32_t character, uint32_t char_id)
     return '?';
   switch (character)
     {
-    case 9:
-    {
-    return 32; break;
-    }
-    case 10: {
-    return 32; break;
-    }
-    case 13: {
-    return 32; break;
-    }
-    default: (uint16_t)character;
+    case 9: return 32;     
+    case 10: return 32; 
+    case 13: return 32;    
+    default: return (uint16_t)character;
     }
   }
 
@@ -181,6 +174,37 @@ std::string get_operation_text(e_operation op)
     }
   }
 
+void draw_help_line(const std::string& text, int r, int sz)
+  {
+  attrset(A_NORMAL);
+  move(r, 0);
+  int length = (int)text.length();
+  if (length > sz)
+    length = sz;
+
+  for (int i = 0; i < length; ++i)
+    {
+    if (i % 10 == 0 || i % 10 == 1)
+      attron(A_REVERSE);
+    addch(text[i]);
+    if (i % 10 == 0 || i % 10 == 1)
+      attroff(A_REVERSE);
+    }
+  }
+
+void draw_help_text(app_state state)
+  {
+  int rows, cols;
+  getmaxyx(stdscr, rows, cols);
+  if (state.operation == op_editing)
+    {
+    static std::string line1("^N New    ^O Open   ^S Save   ^C Copy   ^V Paste  ^Z Undo   ^Y Redo   ^A Sel/all");
+    static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^R Restart^E Export");
+    draw_help_line(line1, rows - 2, cols);
+    draw_help_line(line2, rows - 1, cols);
+    }
+  }
+
 app_state draw(app_state state)
   {
   erase();
@@ -210,9 +234,6 @@ app_state draw(app_state state)
     attron(A_REVERSE);
     attribute_stack.push_back(A_REVERSE);
     }
-
-  //if (cursor.col > state.buffer.content[cursor.row].size())
-  //  cursor.col = state.buffer.content[cursor.row].size();
 
   for (int r = 0; r < maxrow; ++r)
     {
@@ -272,6 +293,25 @@ app_state draw(app_state state)
     attribute_stack.pop_back();
     attrset(attribute_stack.back());
     }
+  else
+    {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+    int message_length = (int)state.message.size();
+    int offset = (cols - message_length) / 2;
+    if (offset > 0)
+      {
+      attrset(A_BOLD);
+      for (auto ch : state.message)
+        {
+        move(rows - 3, offset);
+        addch(ch);
+        ++offset;
+        }
+      }
+    }
+
+  draw_help_text(state);
 
   curs_set(0);
   refresh();
@@ -591,8 +631,59 @@ app_state ret_editor(app_state state)
   return text_input(state, "\n");
   }
 
+line string_to_line(const std::string& txt)
+  {
+  line out;
+  auto trans = out.transient();
+  for (auto ch : txt)
+    trans.push_back(ch);  
+  return trans.persistent();
+  }
+
+app_state open_file(app_state state)
+  {
+  state.operation = op_editing;
+  std::wstring wfilename;
+  if (!state.operation_buffer.content.empty())
+    wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
+  std::replace(wfilename.begin(), wfilename.end(), '\\', '/'); // replace all '\\' by '/'
+  std::string filename = jtk::convert_wstring_to_string(wfilename);
+  if (filename.find(' ') != std::string::npos)
+    {
+    filename.push_back('"');
+    filename.insert(filename.begin(), '"');
+    }
+  if (!jtk::file_exists(filename))
+    {
+    if (filename.empty() || filename.back() != '"')
+      {
+      filename.push_back('"');
+      filename.insert(filename.begin(), '"');
+      }
+    std::string error_message = "File " + filename + " not found";
+    state.message = string_to_line(error_message);
+    }
+  else
+    {
+    state.buffer = read_from_file(filename);
+    if (filename.empty() || filename.back() != '"')
+      {
+      filename.push_back('"');
+      filename.insert(filename.begin(), '"');
+      }
+    std::string message = "Opened file " + filename;
+    state.message = string_to_line(message);
+    }
+  return state;
+  }
+
 app_state ret_operation(app_state state)
   {
+  switch (state.operation)
+    {
+    case op_open: return open_file(state);
+    default: break;
+    }
   state.operation = op_editing;
   return state;
   }
@@ -620,42 +711,28 @@ app_state stop_selection(app_state state)
 
 app_state undo(app_state state)
   {
-  if (state.buffer.undo_redo_index == state.buffer.history.size()) // first time undo
-    {
-    state.buffer = push_undo(state.buffer);
-    --state.buffer.undo_redo_index;
-    }
-  if (state.buffer.undo_redo_index)
-    {
-    --state.buffer.undo_redo_index;
-    snapshot ss = state.buffer.history[(uint32_t)state.buffer.undo_redo_index];
-    state.buffer.content = ss.content;
-    state.buffer.pos = ss.pos;
-    state.buffer.modification_mask = ss.modification_mask;
-    state.buffer.start_selection = ss.start_selection;
-    state.buffer.history = state.buffer.history.push_back(ss);
-    }
+  if (state.operation == op_editing)
+    state.buffer = undo(state.buffer);
+  else
+    state.operation_buffer = undo(state.operation_buffer);
   return state;
   }
 
 app_state redo(app_state state)
   {
-  if (state.buffer.undo_redo_index + 1 < state.buffer.history.size())
-    {
-    ++state.buffer.undo_redo_index;
-    snapshot ss = state.buffer.history[(uint32_t)state.buffer.undo_redo_index];
-    state.buffer.content = ss.content;
-    state.buffer.pos = ss.pos;
-    state.buffer.modification_mask = ss.modification_mask;
-    state.buffer.start_selection = ss.start_selection;
-    state.buffer.history = state.buffer.history.push_back(ss);
-    }
+  if (state.operation == op_editing)
+    state.buffer = redo(state.buffer);
+  else
+    state.operation_buffer = redo(state.operation_buffer);
   return state;
   }
 
 app_state copy_to_snarf_buffer(app_state state)
   {
-  state.snarf_buffer = get_selection(state.buffer);
+  if (state.operation == op_editing)
+    state.snarf_buffer = get_selection(state.buffer);
+  else
+    state.snarf_buffer = get_selection(state.operation_buffer);
 #ifdef _WIN32
   std::wstring txt;
   for (const auto& ln : state.snarf_buffer)
@@ -670,7 +747,10 @@ app_state copy_to_snarf_buffer(app_state state)
 
 app_state paste_from_snarf_buffer(app_state state)
   {
-  state.buffer = insert(state.buffer, state.snarf_buffer);
+  if (state.operation == op_editing)
+    state.buffer = insert(state.buffer, state.snarf_buffer);
+  else
+    state.operation_buffer = insert(state.operation_buffer, state.snarf_buffer);
   return state;
   }
 
@@ -807,7 +887,7 @@ std::optional<app_state> process_input(app_state state)
         case SDL_QUIT: return exit(state);
         } // switch (event.type)
       }
-    std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(16.0));
+    std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
     }
   }
 

@@ -71,3 +71,7 @@ file_buffer erase_right(file_buffer fb, bool save_undo = true);
 file_buffer push_undo(file_buffer fb);
 
 text get_selection(file_buffer fb);
+
+file_buffer undo(file_buffer fb);
+
+file_buffer redo(file_buffer fb);

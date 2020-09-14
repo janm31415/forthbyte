@@ -1,6 +1,7 @@
 #pragma once
 
 #include "buffer.h"
+#include <string>
 
 enum e_operation
   {
@@ -13,9 +14,10 @@ struct app_state
   {
   file_buffer buffer;
   file_buffer operation_buffer;
-  int64_t scroll_row;  
   text snarf_buffer;
-  e_operation operation;
+  line message;
+  int64_t scroll_row;    
+  e_operation operation;  
   };
 
 
