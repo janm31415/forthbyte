@@ -49,6 +49,8 @@ file_buffer read_from_file(const std::string& filename)
 position get_actual_position(file_buffer fb)
   {
   position out = fb.pos;
+  if (out.row < 0 || out.col < 0)
+    return out;
   if (fb.pos.row >= fb.content.size())
     {
     assert(fb.content.empty());
@@ -146,6 +148,7 @@ file_buffer insert(file_buffer fb, const std::string& txt, bool save_undo)
         fb.content = fb.content.push_back(line());
         ++fb.pos.row;
         fb.pos.col = 0;
+        pos = fb.pos;
         }
       }
     else if (input.back() == L'\n')

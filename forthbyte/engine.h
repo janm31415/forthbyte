@@ -6,8 +6,9 @@
 enum e_operation
   {
   op_editing,
+  op_help,
   op_open,
-  op_saveas
+  op_save
   };
 
 struct app_state
@@ -16,7 +17,7 @@ struct app_state
   file_buffer operation_buffer;
   text snarf_buffer;
   line message;
-  int64_t scroll_row;    
+  int64_t scroll_row, operation_scroll_row;    
   e_operation operation;  
   };
 

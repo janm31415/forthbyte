@@ -30,8 +30,12 @@ int main(int argc, char** argv)
   SDL_GL_SetSwapInterval(1);
   atexit(SDL_Quit);
 
-  int w = 640 * 2;
-  int h = 480 * 2;
+  int w = 10 * 80;
+#ifdef _WIN32
+  int h = 16 * 25;
+#else
+  int h = 17 * 25;
+#endif
 
   /* Initialize PDCurses */
 
