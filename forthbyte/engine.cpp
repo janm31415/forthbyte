@@ -1178,9 +1178,24 @@ std::optional<app_state> process_input(app_state state)
     }
   }
 
-engine::engine(int w, int h, int argc, char** argv)
+engine::engine(int argc, char** argv)
   {
+  pdc_font_size = 17;
+  TTF_CloseFont(pdc_ttffont);
+#ifdef _WIN32
+  pdc_ttffont = TTF_OpenFont("C:/Windows/Fonts/consola.ttf", pdc_font_size);
+#else
+  pdc_ttffont = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", pdc_font_size);
+#endif
+
   TTF_SizeText(pdc_ttffont, "W", &font_width, &font_height);
+  pdc_fheight = font_height;
+  pdc_fwidth = font_width;
+  pdc_fthick = pdc_font_size / 20 + 1;
+
+  int w = font_width*80;
+  int h = font_height*25;
+
   nodelay(stdscr, TRUE);
   noecho();
 

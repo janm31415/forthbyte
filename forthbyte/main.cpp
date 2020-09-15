@@ -30,12 +30,6 @@ int main(int argc, char** argv)
   SDL_GL_SetSwapInterval(1);
   atexit(SDL_Quit);
 
-  int w = 10 * 80;
-#ifdef _WIN32
-  int h = 16 * 25;
-#else
-  int h = 17 * 25;
-#endif
 
   /* Initialize PDCurses */
 
@@ -49,7 +43,7 @@ int main(int argc, char** argv)
 
   PDC_set_title("forthbyte beat machine");
 
-  engine e(w, h, argc, argv);
+  engine e(argc, argv);
   e.run();
 
 

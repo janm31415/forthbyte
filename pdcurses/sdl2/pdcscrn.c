@@ -21,7 +21,7 @@
 TTF_Font *pdc_ttffont = NULL;
 int pdc_font_size =
 # ifdef _WIN32
- 16;
+ 17;
 # else
  17;
 # endif

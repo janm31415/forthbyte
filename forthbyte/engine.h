@@ -26,7 +26,7 @@ struct engine
   {
   app_state state;
 
-  engine(int w, int h, int argc, char** argv);
+  engine(int argc, char** argv);
   ~engine();
 
   void run();
