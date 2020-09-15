@@ -51,7 +51,7 @@ file_buffer save_to_file(bool& success, file_buffer fb, const std::string& filen
 #ifdef _WIN32
   std::wstring wfilename = jtk::convert_string_to_wstring(filename); // filenames are in utf8 encoding
 #else
-  std::string wfilename(cmd.filename);
+  std::string wfilename(filename);
 #endif
   success = false;
   auto f = std::ofstream{ wfilename };
