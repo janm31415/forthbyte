@@ -204,6 +204,7 @@ std::string get_operation_text(e_operation op)
   switch (op)
     {
     case op_open: return std::string("Open file: ");
+    case op_save: return std::string("Save file: ");
     default: return std::string();
     }
   }
@@ -238,6 +239,11 @@ void draw_help_text(app_state state)
     draw_help_line(line2, rows - 1, cols);
     }
   if (state.operation == op_open)
+    {
+    static std::string line1("^X Cancel");
+    draw_help_line(line1, rows - 2, cols);
+    }
+  if (state.operation == op_save)
     {
     static std::string line1("^X Cancel");
     draw_help_line(line1, rows - 2, cols);
@@ -778,6 +784,20 @@ line string_to_line(const std::string& txt)
   return trans.persistent();
   }
 
+std::string clean_filename(std::string name)
+  {
+  while (!name.empty() && name.back() == ' ')
+    name.pop_back();
+  while (!name.empty() && name.front() == ' ')
+    name.erase(name.begin());
+  if (name.size() > 2 && name.front() == '"' && name.back() == '"')
+    {
+    name.erase(name.begin());
+    name.pop_back();
+    }
+  return name;
+  }
+
 app_state open_file(app_state state)
   {
   state.operation = op_editing;
@@ -785,7 +805,7 @@ app_state open_file(app_state state)
   if (!state.operation_buffer.content.empty())
     wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
   std::replace(wfilename.begin(), wfilename.end(), '\\', '/'); // replace all '\\' by '/'
-  std::string filename = jtk::convert_wstring_to_string(wfilename);
+  std::string filename = clean_filename(jtk::convert_wstring_to_string(wfilename));
   if (filename.find(' ') != std::string::npos)
     {
     filename.push_back('"');
@@ -815,11 +835,41 @@ app_state open_file(app_state state)
   return state;
   }
 
+app_state save_file(app_state state)
+  {
+  state.operation = op_editing;
+  std::wstring wfilename;
+  if (!state.operation_buffer.content.empty())
+    wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
+  std::replace(wfilename.begin(), wfilename.end(), '\\', '/'); // replace all '\\' by '/'
+  std::string filename = clean_filename(jtk::convert_wstring_to_string(wfilename));
+  if (filename.find(' ') != std::string::npos)
+    {
+    filename.push_back('"');
+    filename.insert(filename.begin(), '"');
+    }  
+  bool success = false;
+  state.buffer = save_to_file(success, state.buffer, filename);
+  if (success)
+    {
+    state.buffer.name = filename;
+    std::string message = "Saved file " + filename;
+    state.message = string_to_line(message);
+    }
+  else
+    {
+    std::string error_message = "Error saving file " + filename;
+    state.message = string_to_line(error_message);
+    }
+  return state;
+  }
+
 app_state ret_operation(app_state state)
   {
   switch (state.operation)
     {
     case op_open: return open_file(state);
+    case op_save: return save_file(state);
     default: break;
     }
   state.operation = op_editing;
@@ -923,6 +973,13 @@ app_state clear_operation_buffer(app_state state)
   state.operation_buffer.pos.row = 0;
   state.operation_buffer.pos.col = 0;
   state.operation_scroll_row = 0;
+  return state;
+  }
+
+app_state make_save_buffer(app_state state)
+  {
+  state = clear_operation_buffer(state);
+  state.operation_buffer = insert(state.operation_buffer, state.buffer.name, false);
   return state;
   }
 
@@ -1051,6 +1108,14 @@ std::optional<app_state> process_input(app_state state)
             {
             state.operation = op_open;
             return clear_operation_buffer(state);
+            }
+          }
+          case SDLK_s:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            state.operation = op_save;
+            return make_save_buffer(state);
             }
           }
           case SDLK_v:

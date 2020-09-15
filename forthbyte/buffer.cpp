@@ -46,6 +46,41 @@ file_buffer read_from_file(const std::string& filename)
   return fb;
   }
 
+file_buffer save_to_file(bool& success, file_buffer fb, const std::string& filename)
+  {
+#ifdef _WIN32
+  std::wstring wfilename = jtk::convert_string_to_wstring(filename); // filenames are in utf8 encoding
+#else
+  std::string wfilename(cmd.filename);
+#endif
+  success = false;
+  auto f = std::ofstream{ wfilename };
+  if (f.is_open())
+    {
+    for (auto ln : fb.content)
+      {
+      std::string str;
+      auto it = ln.begin();
+      auto it_end = ln.end();
+      str.reserve(std::distance(it, it_end));
+      utf8::utf16to8(it, it_end, std::back_inserter(str));
+      f << str;
+      }
+    f.close();
+    success = true;
+    fb.modification_mask = 0;
+    auto thistory = fb.history.transient();
+    for (uint32_t idx = 0; idx < thistory.size(); ++idx)
+      {
+      auto h = thistory[idx];
+      h.modification_mask = 1;
+      thistory.set(idx, h);
+      }
+    fb.history = thistory.persistent();
+    }  
+  return fb;
+  }
+
 position get_actual_position(file_buffer fb)
   {
   position out = fb.pos;
