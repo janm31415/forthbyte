@@ -1,6 +1,7 @@
 #include "engine.h"
 #include "clipboard.h"
 
+#include "colors.h"
 #include "keyboard.h"
 
 #include <jtk/file_utils.h>
@@ -15,6 +16,9 @@ extern "C"
   }
 
 #define TAB_SPACE 8
+
+
+#define DEFAULT_COLOR (A_NORMAL | COLOR_PAIR(default_color))
 
 namespace
   {
@@ -89,7 +93,7 @@ void draw_title_bar(app_state state)
   {
   int rows, cols;
   getmaxyx(stdscr, rows, cols);
-  attrset(A_NORMAL);
+  attrset(DEFAULT_COLOR);
   attron(A_REVERSE);
   attron(A_BOLD);
   std::wstring title_bar(cols, ' ');
@@ -107,13 +111,36 @@ void draw_title_bar(app_state state)
     }
   }
 
+#define MULTILINEOFFSET 10
 
 void draw_line(line ln, position& current, position cursor, std::vector<chtype>& attribute_stack, int r, int xoffset, int maxcol, std::optional<position> start_selection)
   {
   bool has_selection = start_selection != std::nullopt;
-
+  bool multiline = (cursor.row == current.row) && (ln.size() >= (maxcol - 1));
+  
   auto it = ln.begin();
   auto it_end = ln.end();
+
+  int page = 0;
+
+  if (multiline)
+    {
+    int pagewidth = maxcol-2 - MULTILINEOFFSET;
+    page = cursor.col / pagewidth;
+    if (page != 0)
+      {
+      int offset = page * pagewidth - MULTILINEOFFSET / 2;
+      it += offset;
+      current.col += offset;
+      maxcol += offset - 2;
+      xoffset -= offset;
+      move((int)r, (int)current.col + xoffset);
+      attron(COLOR_PAIR(multiline_tag));
+      addch('$');
+      attron(COLOR_PAIR(default_color));
+      ++xoffset;
+      }    
+    }
 
   for (; it != it_end; ++it)
     {
@@ -163,6 +190,13 @@ void draw_line(line ln, position& current, position cursor, std::vector<chtype>&
 
     ++current.col;
     }
+
+  if (multiline && (it != it_end) && (page != 0))
+    {
+    attron(COLOR_PAIR(multiline_tag));
+    addch('$');
+    attron(COLOR_PAIR(default_color));
+    }
   }
 
 std::string get_operation_text(e_operation op)
@@ -176,7 +210,7 @@ std::string get_operation_text(e_operation op)
 
 void draw_help_line(const std::string& text, int r, int sz)
   {
-  attrset(A_NORMAL);
+  attrset(DEFAULT_COLOR);
   move(r, 0);
   int length = (int)text.length();
   if (length > sz)
@@ -212,7 +246,7 @@ void draw_help_text(app_state state)
 
 app_state draw(app_state state)
   {
-  erase();
+  erase();  
 
   draw_title_bar(state);
 
@@ -231,8 +265,8 @@ app_state draw(app_state state)
 
   std::vector<chtype> attribute_stack;
 
-  attrset(A_NORMAL);
-  attribute_stack.push_back(A_NORMAL);
+  attrset(DEFAULT_COLOR);
+  attribute_stack.push_back(DEFAULT_COLOR);
 
   if (has_selection && state.buffer.start_selection->row < state.scroll_row)
     {
@@ -279,7 +313,7 @@ app_state draw(app_state state)
     current.row = 0;
     std::string txt = get_operation_text(state.operation);
     move((int)rows - 3, 0);
-    attrset(A_BOLD);
+    attron(A_BOLD);
     attribute_stack.push_back(A_BOLD);
     for (auto ch : txt)
       addch(ch);
@@ -295,8 +329,8 @@ app_state draw(app_state state)
       addch(' ');
       attroff(A_REVERSE);
       }
-    attribute_stack.pop_back();
-    attrset(attribute_stack.back());
+    attroff(attribute_stack.back());
+    attribute_stack.pop_back();    
     }
   else
     {
@@ -306,13 +340,14 @@ app_state draw(app_state state)
     int offset = (cols - message_length) / 2;
     if (offset > 0)
       {
-      attrset(A_BOLD);
+      attron(A_BOLD);
       for (auto ch : state.message)
         {
         move(rows - 3, offset);
         addch(ch);
         ++offset;
         }
+      attroff(A_BOLD);
       }
     }
 
@@ -940,6 +975,8 @@ engine::engine(int w, int h, int argc, char** argv)
 
   start_color();
   use_default_colors();
+  init_colors();
+  bkgd(COLOR_PAIR(default_color));
 
   if (argc > 1)
     state.buffer = read_from_file(std::string(argv[1]));

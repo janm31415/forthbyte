@@ -18,6 +18,7 @@ endif (UNIX)
 set(HDRS
 buffer.h
 clipboard.h
+colors.h
 engine.h
 keyboard.h
     )
@@ -25,6 +26,7 @@ keyboard.h
 set(SRCS
 buffer.cpp
 clipboard.cpp
+colors.cpp
 engine.cpp
 keyboard.cpp
 main.cpp
