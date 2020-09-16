@@ -16,10 +16,10 @@ if (UNIX)
 endif (UNIX)
 
 if (APPLE)
-  set(SDL_INCLUDE_DIR "/Library/Frameworks/SDL2.framework/Versions/A/Headers/")
-  set(SDL_LIBRARIES "/Library/Frameworks/SDL2.framework/Versions/A/SDL2")
-  set(SDL_TTF_INCLUDE_DIR "/Library/Frameworks/SDL2_ttf.framework/Versions/A/Headers/")
-  set(SDL_TTF_LIBRARIES "/Library/Frameworks/SDL2_ttf.framework/Versions/A/SDL2_ttf")
+  set(SDL_INCLUDE_DIR "/Library/Frameworks/SDL2.framework/Headers/")
+  set(SDL_LIBRARIES "/Library/Frameworks/SDL2.framework/SDL2")
+  set(SDL_TTF_INCLUDE_DIR "/Library/Frameworks/SDL2_ttf.framework/Headers/")
+  set(SDL_TTF_LIBRARIES "/Library/Frameworks/SDL2_ttf.framework/SDL2_ttf")
 endif (APPLE)
 
 set(HDRS
