@@ -1181,11 +1181,15 @@ std::optional<app_state> process_input(app_state state)
 engine::engine(int argc, char** argv)
   {
   pdc_font_size = 17;
-  TTF_CloseFont(pdc_ttffont);
 #ifdef _WIN32
+  TTF_CloseFont(pdc_ttffont);
   pdc_ttffont = TTF_OpenFont("C:/Windows/Fonts/consola.ttf", pdc_font_size);
-#else
+#elif defined(unix)
+  TTF_CloseFont(pdc_ttffont);
   pdc_ttffont = TTF_OpenFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", pdc_font_size);
+#elif defined(__APPLE__)
+  TTF_CloseFont(pdc_ttffont);
+  pdc_ttffont = TTF_OpenFont("/System/Library/Fonts/Menlo.ttc", pdc_font_size);
 #endif
 
   TTF_SizeText(pdc_ttffont, "W", &font_width, &font_height);
