@@ -205,6 +205,7 @@ std::string get_operation_text(e_operation op)
     {
     case op_open: return std::string("Open file: ");
     case op_save: return std::string("Save file: ");
+    case op_query_save: return std::string("Save file: ");
     default: return std::string();
     }
   }
@@ -246,6 +247,11 @@ void draw_help_text(app_state state)
   if (state.operation == op_save)
     {
     static std::string line1("^X Cancel");
+    draw_help_line(line1, rows - 2, cols);
+    }
+  if (state.operation == op_query_save)
+    {
+    static std::string line1("^X Cancel ^Y Yes    ^N No");
     draw_help_line(line1, rows - 2, cols);
     }
   if (state.operation == op_help)
@@ -799,8 +805,7 @@ std::string clean_filename(std::string name)
   }
 
 app_state open_file(app_state state)
-  {
-  state.operation = op_editing;
+  {  
   std::wstring wfilename;
   if (!state.operation_buffer.content.empty())
     wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
@@ -836,8 +841,7 @@ app_state open_file(app_state state)
   }
 
 app_state save_file(app_state state)
-  {
-  state.operation = op_editing;
+  {  
   std::wstring wfilename;
   if (!state.operation_buffer.content.empty())
     wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
@@ -864,39 +868,103 @@ app_state save_file(app_state state)
   return state;
   }
 
-app_state ret_operation(app_state state)
+std::optional<app_state> exit(app_state state)
   {
-  switch (state.operation)
-    {
-    case op_open: return open_file(state);
-    case op_save: return save_file(state);
-    default: break;
-    }
-  state.operation = op_editing;
+  return std::nullopt;
+  }
+
+app_state make_new_buffer(app_state state)
+  {
+  state.buffer = make_empty_buffer();
+  state.scroll_row = 0;
+  state.message = string_to_line("[New]");
   return state;
   }
 
-app_state ret(app_state state)
+std::optional<app_state> ret_operation(app_state state)
+  {  
+  bool done = false;
+  while (!done)
+    {
+    switch (state.operation)
+      {
+      case op_open: state = open_file(state); break;
+      case op_save: state = save_file(state); break;
+      case op_query_save: state = save_file(state); break;
+      case op_new: state = make_new_buffer(state); break;
+      case op_exit: return exit(state);
+      default: break;
+      }
+    if (state.operation_stack.empty())
+      {
+      state.operation = op_editing;
+      done = true;
+      }
+    else
+      {
+      state.operation = state.operation_stack.back();
+      state.operation_stack.pop_back();
+      }
+    }
+  return state;
+  }
+
+std::optional<app_state> ret(app_state state)
   {
   if (state.operation == op_editing)
     return ret_editor(state);
   return ret_operation(state);
   }
 
-std::optional<app_state> exit(app_state state)
+app_state clear_operation_buffer(app_state state)
   {
-  return std::nullopt;
+  state.operation_buffer.content = text();
+  state.operation_buffer.history = immutable::vector<snapshot, false>();
+  state.operation_buffer.undo_redo_index = 0;
+  state.operation_buffer.start_selection = std::nullopt;
+  state.operation_buffer.pos.row = 0;
+  state.operation_buffer.pos.col = 0;
+  state.operation_scroll_row = 0;
+  return state;
+  }
+
+app_state make_save_buffer(app_state state)
+  {
+  state = clear_operation_buffer(state);
+  state.operation_buffer = insert(state.operation_buffer, state.buffer.name, false);
+  return state;
+  }
+
+app_state new_buffer(app_state state)
+  {
+  if ((state.buffer.modification_mask & 1) == 1)
+    {
+    state.operation = op_query_save;
+    state.operation_stack.push_back(op_new);
+    return make_save_buffer(state);
+    }
+  return make_new_buffer(state);
   }
 
 std::optional<app_state> cancel(app_state state)
   {
   if (state.operation == op_editing)
-    return exit(state);
+    {
+    if ((state.buffer.modification_mask & 1) == 1)
+      {
+      state.operation = op_query_save;
+      state.operation_stack.push_back(op_exit);
+      return make_save_buffer(state);
+      }
+    else
+      return exit(state);
+    }
   else
     {
     if (state.operation != op_help)
       state.message = string_to_line("[Cancelled]");
     state.operation = op_editing;
+    state.operation_stack.clear();
     }
   return state;
   }
@@ -962,25 +1030,6 @@ app_state select_all(app_state state)
   else
     state.operation_buffer = select_all(state.operation_buffer);
   return check_scroll_position(state);
-  }
-
-app_state clear_operation_buffer(app_state state)
-  {
-  state.operation_buffer.content = text();
-  state.operation_buffer.history = immutable::vector<snapshot, false>();
-  state.operation_buffer.undo_redo_index = 0;
-  state.operation_buffer.start_selection = std::nullopt;
-  state.operation_buffer.pos.row = 0;
-  state.operation_buffer.pos.col = 0;
-  state.operation_scroll_row = 0;
-  return state;
-  }
-
-app_state make_save_buffer(app_state state)
-  {
-  state = clear_operation_buffer(state);
-  state.operation_buffer = insert(state.operation_buffer, state.buffer.name, false);
-  return state;
   }
 
 app_state make_help_buffer(app_state state)
@@ -1102,6 +1151,23 @@ std::optional<app_state> process_input(app_state state)
             return make_help_buffer(state);
             }
           }
+          case SDLK_n:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            switch (state.operation)
+              {
+              case op_query_save:
+              {              
+              state.operation = state.operation_stack.back();
+              state.operation_stack.pop_back();
+              return ret(state);
+              }
+              default: return new_buffer(state);
+              }
+            }
+          break;
+          }
           case SDLK_o:
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
@@ -1137,7 +1203,15 @@ std::optional<app_state> process_input(app_state state)
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
             {
-            return redo(state);
+            switch (state.operation)
+              {
+              case op_query_save:
+              {
+              state.operation = op_save;              
+              return ret(state);
+              }
+              default: return redo(state);
+              }
             }
           break;
           }

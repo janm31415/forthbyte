@@ -2,13 +2,17 @@
 
 #include "buffer.h"
 #include <string>
+#include <vector>
 
 enum e_operation
   {
   op_editing,
+  op_exit,
   op_help,
   op_open,
-  op_save
+  op_save,
+  op_query_save,
+  op_new
   };
 
 struct app_state
@@ -19,6 +23,7 @@ struct app_state
   line message;
   int64_t scroll_row, operation_scroll_row;    
   e_operation operation;  
+  std::vector<e_operation> operation_stack;
   };
 
 
