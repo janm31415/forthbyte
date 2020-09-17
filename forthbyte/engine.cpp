@@ -1016,10 +1016,18 @@ app_state copy_to_snarf_buffer(app_state state)
 
 app_state paste_from_snarf_buffer(app_state state)
   {
+#ifdef _WIN32
+  auto txt = get_text_from_windows_clipboard();
+  if (state.operation == op_editing)
+    state.buffer = insert(state.buffer, txt);
+  else
+    state.operation_buffer = insert(state.operation_buffer, txt);
+#else
   if (state.operation == op_editing)
     state.buffer = insert(state.buffer, state.snarf_buffer);
   else
     state.operation_buffer = insert(state.operation_buffer, state.snarf_buffer);
+#endif
   return check_scroll_position(state);
   }
 
