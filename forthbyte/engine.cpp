@@ -113,8 +113,9 @@ void draw_title_bar(app_state state)
 
 #define MULTILINEOFFSET 10
 
-void draw_line(line ln, position& current, position cursor, std::vector<chtype>& attribute_stack, int r, int xoffset, int maxcol, std::optional<position> start_selection)
+void draw_line(int& wide_characters_offset, line ln, position& current, position cursor, std::vector<chtype>& attribute_stack, int r, int xoffset, int maxcol, std::optional<position> start_selection)
   {
+  wide_characters_offset = 0;
   bool has_selection = start_selection != std::nullopt;
   bool multiline = (cursor.row == current.row) && (ln.size() >= (maxcol - 1));
   
@@ -162,13 +163,14 @@ void draw_line(line ln, position& current, position cursor, std::vector<chtype>&
       attron(A_REVERSE);
       }
 
-    move((int)r, (int)current.col + xoffset);
+    move((int)r, (int)current.col + xoffset + wide_characters_offset);
     auto character = *it;
-    uint32_t cwidth = character_width(character, current.col);
+    uint32_t cwidth = character_width(character, current.col + wide_characters_offset);
     for (uint32_t cnt = 0; cnt < cwidth; ++cnt)
       {
       addch(character_to_pdc_char(character, cnt));
       }
+    wide_characters_offset += cwidth - 1;
 
     if (current == cursor)
       {
@@ -301,12 +303,12 @@ void draw_buffer(file_buffer fb, int64_t scroll_row)
       break;
       }
 
-
-    draw_line(fb.content[current.row], current, cursor, attribute_stack, r + offset_y, offset_x, maxcol, fb.start_selection);
+    int wide_characters_offset = 0;
+    draw_line(wide_characters_offset, fb.content[current.row], current, cursor, attribute_stack, r + offset_y, offset_x, maxcol, fb.start_selection);
 
     if ((current == cursor))// && (current.row == fb.content.size() - 1) && (current.col == fb.content.back().size()))// only occurs on last line, last position
       {
-      move((int)r + offset_y, (int)current.col + offset_x);
+      move((int)r + offset_y, (int)current.col + offset_x + wide_characters_offset);
       assert(current.row == fb.content.size() - 1);
       assert(current.col == fb.content.back().size());
       attron(A_REVERSE);
@@ -354,11 +356,12 @@ app_state draw(app_state state)
     get_editor_window_size(maxrow, maxcol);
     int cols_available = maxcol - txt.length();
     int off_x = txt.length();
+    int wide_chars_offset = 0;
     if (!state.operation_buffer.content.empty())
-      draw_line(state.operation_buffer.content[0], current, cursor, attribute_stack, rows-3, off_x, cols_available, state.operation_buffer.start_selection);
+      draw_line(wide_chars_offset, state.operation_buffer.content[0], current, cursor, attribute_stack, rows-3, off_x, cols_available, state.operation_buffer.start_selection);
     if ((current == cursor))
       {
-      move((int)rows - 3, (int)current.col + off_x);
+      move((int)rows - 3, (int)current.col + off_x + wide_chars_offset);
       attron(A_REVERSE);
       addch(' ');
       attroff(A_REVERSE);
@@ -708,6 +711,28 @@ app_state move_end(app_state state)
   if (state.operation == op_editing)
     return move_end_editor(state);
   return move_end_operation(state);
+  }
+
+
+app_state tab_editor(app_state state)
+  {
+  std::string t("\t");
+  state.buffer = insert(state.buffer, t);
+  return state;
+  }
+
+app_state tab_operation(app_state state)
+  {
+  std::string t("\t");
+  state.operation_buffer = insert(state.operation_buffer, t);
+  return state;
+  }
+
+app_state tab(app_state state)
+  {
+  if (state.operation == op_editing)
+    return tab_editor(state);
+  return tab_operation(state);
   }
 
 app_state text_input_editor(app_state state, const char* txt)
@@ -1116,6 +1141,7 @@ std::optional<app_state> process_input(app_state state)
           case SDLK_PAGEDOWN: return move_page_down(state);
           case SDLK_HOME: return move_home(state);
           case SDLK_END: return move_end(state);
+          case SDLK_TAB: return tab(state);
           case SDLK_RETURN: return ret(state);
           case SDLK_BACKSPACE: return backspace(state);
           case SDLK_DELETE: return del(state);
