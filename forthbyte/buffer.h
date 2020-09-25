@@ -79,3 +79,5 @@ file_buffer undo(file_buffer fb);
 file_buffer redo(file_buffer fb);
 
 file_buffer select_all(file_buffer fb);
+
+std::string buffer_to_string(file_buffer fb);

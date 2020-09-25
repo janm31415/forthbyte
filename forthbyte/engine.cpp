@@ -46,9 +46,9 @@ uint16_t character_to_pdc_char(uint32_t character, uint32_t char_id)
     return '?';
   switch (character)
     {
-    case 9: return 32;     
-    case 10: return 32; 
-    case 13: return 32;    
+    case 9: return 32;
+    case 10: return 32;
+    case 13: return 32;
     default: return (uint16_t)character;
     }
   }
@@ -118,7 +118,7 @@ void draw_line(int& wide_characters_offset, line ln, position& current, position
   wide_characters_offset = 0;
   bool has_selection = start_selection != std::nullopt;
   bool multiline = (cursor.row == current.row) && (ln.size() >= (maxcol - 1));
-  
+
   auto it = ln.begin();
   auto it_end = ln.end();
 
@@ -126,7 +126,7 @@ void draw_line(int& wide_characters_offset, line ln, position& current, position
 
   if (multiline)
     {
-    int pagewidth = maxcol-2 - MULTILINEOFFSET;
+    int pagewidth = maxcol - 2 - MULTILINEOFFSET;
     page = cursor.col / pagewidth;
     if (page != 0)
       {
@@ -140,7 +140,7 @@ void draw_line(int& wide_characters_offset, line ln, position& current, position
       addch('$');
       attron(COLOR_PAIR(default_color));
       ++xoffset;
-      }    
+      }
     }
 
   for (; it != it_end; ++it)
@@ -238,8 +238,12 @@ void draw_help_text(app_state state)
     {
     static std::string line1("^N New    ^O Open   ^S Save   ^C Copy   ^V Paste  ^Z Undo   ^Y Redo   ^A Sel/all");
     static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^R Restart^E Export");
+    static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^R Restart^E Export");
     draw_help_line(line1, rows - 2, cols);
-    draw_help_line(line2, rows - 1, cols);
+    if (state.playing)
+      draw_help_line(line3, rows - 1, cols);
+    else
+      draw_help_line(line2, rows - 1, cols);
     }
   if (state.operation == op_open)
     {
@@ -322,9 +326,9 @@ void draw_buffer(file_buffer fb, int64_t scroll_row)
 
 app_state draw(app_state state)
   {
-  erase();  
+  erase();
 
-  draw_title_bar(state);  
+  draw_title_bar(state);
 
   if (state.operation == op_help)
     {
@@ -358,7 +362,7 @@ app_state draw(app_state state)
     int off_x = txt.length();
     int wide_chars_offset = 0;
     if (!state.operation_buffer.content.empty())
-      draw_line(wide_chars_offset, state.operation_buffer.content[0], current, cursor, attribute_stack, rows-3, off_x, cols_available, state.operation_buffer.start_selection);
+      draw_line(wide_chars_offset, state.operation_buffer.content[0], current, cursor, attribute_stack, rows - 3, off_x, cols_available, state.operation_buffer.start_selection);
     if ((current == cursor))
       {
       move((int)rows - 3, (int)current.col + off_x + wide_chars_offset);
@@ -367,7 +371,7 @@ app_state draw(app_state state)
       attroff(A_REVERSE);
       }
     attroff(attribute_stack.back());
-    attribute_stack.pop_back();    
+    attribute_stack.pop_back();
     }
   else
     {
@@ -638,7 +642,7 @@ app_state move_page_down_operation(app_state state)
   state = cancel_selection(state);
   int rows, cols;
   get_editor_window_size(rows, cols);
-  state.operation_scroll_row += rows - 1;  
+  state.operation_scroll_row += rows - 1;
   return check_operation_scroll_position(state);
   }
 
@@ -811,7 +815,7 @@ line string_to_line(const std::string& txt)
   line out;
   auto trans = out.transient();
   for (auto ch : txt)
-    trans.push_back(ch);  
+    trans.push_back(ch);
   return trans.persistent();
   }
 
@@ -830,7 +834,7 @@ std::string clean_filename(std::string name)
   }
 
 app_state open_file(app_state state)
-  {  
+  {
   std::wstring wfilename;
   if (!state.operation_buffer.content.empty())
     wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
@@ -866,7 +870,7 @@ app_state open_file(app_state state)
   }
 
 app_state save_file(app_state state)
-  {  
+  {
   std::wstring wfilename;
   if (!state.operation_buffer.content.empty())
     wfilename = std::wstring(state.operation_buffer.content[0].begin(), state.operation_buffer.content[0].end());
@@ -876,7 +880,7 @@ app_state save_file(app_state state)
     {
     filename.push_back('"');
     filename.insert(filename.begin(), '"');
-    }  
+    }
   bool success = false;
   state.buffer = save_to_file(success, state.buffer, filename);
   if (success)
@@ -907,7 +911,7 @@ app_state make_new_buffer(app_state state)
   }
 
 std::optional<app_state> ret_operation(app_state state)
-  {  
+  {
   bool done = false;
   while (!done)
     {
@@ -1005,6 +1009,7 @@ app_state stop_selection(app_state state)
 
 app_state undo(app_state state)
   {
+  state.message = string_to_line("[Undo]");
   if (state.operation == op_editing)
     state.buffer = undo(state.buffer);
   else
@@ -1014,6 +1019,7 @@ app_state undo(app_state state)
 
 app_state redo(app_state state)
   {
+  state.message = string_to_line("[Redo]");
   if (state.operation == op_editing)
     state.buffer = redo(state.buffer);
   else
@@ -1023,6 +1029,7 @@ app_state redo(app_state state)
 
 app_state copy_to_snarf_buffer(app_state state)
   {
+  state.message = string_to_line("[Copy]");
   if (state.operation == op_editing)
     state.snarf_buffer = get_selection(state.buffer);
   else
@@ -1041,6 +1048,7 @@ app_state copy_to_snarf_buffer(app_state state)
 
 app_state paste_from_snarf_buffer(app_state state)
   {
+  state.message = string_to_line("[Paste]");
 #ifdef _WIN32
   auto txt = get_text_from_windows_clipboard();
   if (state.operation == op_editing)
@@ -1058,6 +1066,7 @@ app_state paste_from_snarf_buffer(app_state state)
 
 app_state select_all(app_state state)
   {
+  state.message = string_to_line("[Select all]");
   if (state.operation == op_editing)
     state.buffer = select_all(state.buffer);
   else
@@ -1103,7 +1112,21 @@ f
   return state;
   }
 
-std::optional<app_state> process_input(app_state state)
+app_state compile_buffer(app_state state, compiler& c)
+  {
+  try
+    {
+    c.compile_byte(buffer_to_string(state.buffer));
+    state.message = string_to_line("[Build succeeded]");
+    }
+  catch (std::logic_error& e)
+    {
+    state.message = string_to_line(e.what());
+    }
+  return state;
+  }
+
+std::optional<app_state> process_input(app_state state, compiler& c, music& m)
   {
   SDL_Event event;
   auto tic = std::chrono::steady_clock::now();
@@ -1170,6 +1193,13 @@ std::optional<app_state> process_input(app_state state)
             return select_all(state);
             }
           }
+          case SDLK_b: // build
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            return compile_buffer(state, c);
+            }
+          }
           case SDLK_c:
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
@@ -1185,6 +1215,24 @@ std::optional<app_state> process_input(app_state state)
             return make_help_buffer(state);
             }
           }
+          case SDLK_p:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            if (state.playing)
+              {
+              state.message = string_to_line("[Pause]");
+              m.stop();
+              }
+            else
+              {
+              state.message = string_to_line("[Play]");
+              m.play(c);
+              }
+            state.playing = !state.playing;
+            return state;
+            }
+          }
           case SDLK_n:
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
@@ -1192,7 +1240,7 @@ std::optional<app_state> process_input(app_state state)
             switch (state.operation)
               {
               case op_query_save:
-              {              
+              {
               state.operation = state.operation_stack.back();
               state.operation_stack.pop_back();
               return ret(state);
@@ -1204,10 +1252,21 @@ std::optional<app_state> process_input(app_state state)
           }
           case SDLK_o:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             state.operation = op_open;
             return clear_operation_buffer(state);
+            }
+          }
+          case SDLK_r:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            state.message = string_to_line("[Restart]");
+            m.reset_timer();
+            if (state.playing)
+              m.play(c);
+            return state;
             }
           }
           case SDLK_s:
@@ -1235,13 +1294,13 @@ std::optional<app_state> process_input(app_state state)
           }
           case SDLK_y:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             switch (state.operation)
               {
               case op_query_save:
               {
-              state.operation = op_save;              
+              state.operation = op_save;
               return ret(state);
               }
               default: return redo(state);
@@ -1251,7 +1310,7 @@ std::optional<app_state> process_input(app_state state)
           }
           case SDLK_z:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL)) 
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             return undo(state);
             }
@@ -1282,6 +1341,7 @@ std::optional<app_state> process_input(app_state state)
         case SDL_QUIT: return exit(state);
         } // switch (event.type)
       }
+    m.fill_buffer(c);
     std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
     }
   }
@@ -1305,8 +1365,8 @@ engine::engine(int argc, char** argv)
   pdc_fwidth = font_width;
   pdc_fthick = pdc_font_size / 20 + 1;
 
-  int w = font_width*80;
-  int h = font_height*25;
+  int w = font_width * 80;
+  int h = font_height * 25;
 
   nodelay(stdscr, TRUE);
   noecho();
@@ -1320,9 +1380,11 @@ engine::engine(int argc, char** argv)
     state.buffer = read_from_file(std::string(argv[1]));
   else
     state.buffer = make_empty_buffer();
+  state = compile_buffer(state, c);
   state.operation = op_editing;
   state.scroll_row = 0;
   state.operation_scroll_row = 0;
+  state.playing = false;
 
   SDL_ShowCursor(1);
   SDL_SetWindowSize(pdc_window, w, h);
@@ -1346,7 +1408,7 @@ void engine::run()
   state = draw(state);
   SDL_UpdateWindowSurface(pdc_window);
 
-  while (auto new_state = process_input(state))
+  while (auto new_state = process_input(state, c, m))
     {
     state = *new_state;
     state = draw(state);

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "buffer.h"
+#include "compiler.h"
+#include "music.h"
 #include <string>
 #include <vector>
 
@@ -24,12 +26,15 @@ struct app_state
   int64_t scroll_row, operation_scroll_row;    
   e_operation operation;  
   std::vector<e_operation> operation_stack;
+  bool playing;
   };
 
 
 struct engine
   {
   app_state state;
+  compiler c;
+  music m;
 
   engine(int argc, char** argv);
   ~engine();

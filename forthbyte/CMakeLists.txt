@@ -26,18 +26,22 @@ set(HDRS
 buffer.h
 clipboard.h
 colors.h
+compiler.h
 engine.h
 forth.h
 keyboard.h
+music.h
     )
 	
 set(SRCS
 buffer.cpp
 clipboard.cpp
 colors.cpp
+compiler.cpp
 engine.cpp
 keyboard.cpp
 main.cpp
+music.cpp
 )
 
 

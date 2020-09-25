@@ -424,3 +424,18 @@ file_buffer select_all(file_buffer fb)
   fb.pos.col = fb.content.back().size();
   return fb;
   }
+
+std::string buffer_to_string(file_buffer fb)
+  {
+  std::string out;
+  for (auto ln : fb.content)
+    {
+    std::string str;
+    auto it = ln.begin();
+    auto it_end = ln.end();
+    str.reserve(std::distance(it, it_end));
+    utf8::utf16to8(it, it_end, std::back_inserter(str));
+    out.append(str);
+    }
+  return out;
+  }

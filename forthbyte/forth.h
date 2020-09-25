@@ -87,6 +87,14 @@ namespace forth
       void push(T val);
 
       void primitive_add();
+      void primitive_sub();
+      void primitive_mul();
+      void primitive_div();
+      void primitive_left_shift();
+      void primitive_right_shift();
+      void primitive_and();
+      void primitive_or();
+      void primitive_xor();
 
       void eval(const Program& prog);
 
@@ -118,7 +126,7 @@ namespace forth
       unknown_variable
       };
 
-    void _throw_error(int line_nr, int column_nr, error_type t, std::string extra)
+    inline void _throw_error(int line_nr, int column_nr, error_type t, std::string extra)
       {
       std::stringstream str;
       str << "error:";
@@ -162,7 +170,7 @@ namespace forth
       throw std::logic_error(str.str());
       }
 
-    token _take(std::vector<token>& tokens)
+    inline token _take(std::vector<token>& tokens)
       {
       if (tokens.empty())
         {
@@ -173,7 +181,7 @@ namespace forth
       return t;
       }
 
-    void _require(std::vector<token>& tokens, std::string required)
+    inline void _require(std::vector<token>& tokens, std::string required)
       {
       if (tokens.empty())
         {
@@ -234,7 +242,7 @@ namespace forth
       return (ch == ' ' || ch == '\n' || ch == '\t');
       }
 
-    bool _hex_to_uint64_t(uint64_t& hexvalue, const std::string& h)
+    inline bool _hex_to_uint64_t(uint64_t& hexvalue, const std::string& h)
       {
       hexvalue = 0;
       if (h.empty())
@@ -389,6 +397,14 @@ namespace forth
   interpreter<T, N>::interpreter() : stack_pointer(0), variable_index(0)
     {
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("+", &interpreter::primitive_add));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("-", &interpreter::primitive_sub));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("*", &interpreter::primitive_mul));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("/", &interpreter::primitive_div));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("<<", &interpreter::primitive_left_shift));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>(">>", &interpreter::primitive_right_shift));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("&", &interpreter::primitive_and));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("|", &interpreter::primitive_or));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("^", &interpreter::primitive_xor));
     }
 
   template <class T, int N>
@@ -582,9 +598,73 @@ namespace forth
   template <class T, int N>
   void interpreter<T, N>::primitive_add()
     {
-    T a = pop();
     T b = pop();
+    T a = pop();
     push(a + b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_sub()
+    {
+    T b = pop();
+    T a = pop();
+    push(a - b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_mul()
+    {
+    T b = pop();
+    T a = pop();
+    push(a * b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_div()
+    {
+    T b = pop();
+    T a = pop();
+    push(a / b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_left_shift()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)((uint64_t)a << (uint64_t)b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_right_shift()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)((uint64_t)a >> (uint64_t)b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_and()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)((uint64_t)a & (uint64_t)b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_or()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)((uint64_t)a | (uint64_t)b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_xor()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)((uint64_t)a ^ (uint64_t)b));
     }
 
   } // namespace forth

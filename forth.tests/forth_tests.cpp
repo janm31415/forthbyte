@@ -91,7 +91,7 @@ void test_parse_definition()
 
 void test_parse_variable()
   {
-  auto words = tokenize("t"); 
+  auto words = tokenize("t");
   TEST_EQ(1, (int)words.size());
   interpreter<float> interpr;
   interpr.make_variable("t");
@@ -114,6 +114,17 @@ void test_eval_add()
     }
   }
 
+void test_eval_sub()
+  {
+  auto words = tokenize("1 2 -");
+  interpreter<int> interpr;
+  auto prog = interpr.parse(words);
+  interpr.eval(prog);
+  int res = interpr.pop();
+  TEST_EQ(-1, res);
+  TEST_EQ(0, interpr.stack_pointer);
+  }
+
 void run_all_forth_tests()
   {
   test_tokenize();
@@ -123,4 +134,5 @@ void run_all_forth_tests()
   test_parse_definition();
   test_parse_variable();
   test_eval_add();
+  test_eval_sub();
   }
