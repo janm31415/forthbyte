@@ -30,7 +30,7 @@ namespace
 
   }
 
-music::music() : _sample_rate(8000), _t(0), _samples_per_go(1024), _buffer_width(8), _buffer_is_filled(false),
+music::music() : _sample_rate(8000), _t(0), _samples_per_go(1024), _buffer_width(1), _buffer_is_filled(false),
 _playing(false)
   {
   _buffer_to_play.resize(_samples_per_go*_buffer_width, 127);
@@ -47,11 +47,10 @@ void music::fill_buffer(compiler& c)
   {
   if (_playing && !_buffer_is_filled)
     {
-    for (uint64_t cnt = 0; cnt < _samples_per_go*_buffer_width / 2; ++cnt)
+    for (uint64_t cnt = 0; cnt < _samples_per_go*_buffer_width; ++cnt)
       {
       auto ch = c.run_byte(_t);
-      _buffer_to_fill[2 * cnt] = ch;
-      _buffer_to_fill[2 * cnt + 1] = ch;
+      _buffer_to_fill[cnt] = ch;
       ++_t;
       }
     _buffer_is_filled = true;
@@ -82,7 +81,7 @@ void music::play(compiler& c)
   SDL_AudioSpec wav_spec;
   wav_spec.callback = my_audio_callback;
   wav_spec.userdata = this;
-  wav_spec.channels = 2;
+  wav_spec.channels = 1;
   wav_spec.format = AUDIO_U8;
   wav_spec.freq = _sample_rate;
   wav_spec.padding = 0;

@@ -330,10 +330,18 @@ file_buffer erase_right(file_buffer fb, bool save_undo)
       {
       fb.content = fb.content.set(pos.row, fb.content[pos.row].erase(pos.col));
       }
+    else if (fb.content[pos.row].empty())
+      {
+      fb.content = fb.content.erase(pos.row);
+      }
     else if (pos.row < fb.content.size() - 1)
       {
       auto l = fb.content[pos.row].pop_back() + fb.content[pos.row + 1];
       fb.content = fb.content.erase(pos.row + 1).set(pos.row, l);
+      }
+    else if (pos.col == (int64_t)fb.content[pos.row].size() - 1)// last line, last item
+      {
+      fb.content = fb.content.set(pos.row, fb.content[pos.row].pop_back());
       }
     return fb;
     }
