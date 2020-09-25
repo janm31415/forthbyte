@@ -27,6 +27,7 @@ buffer.h
 clipboard.h
 colors.h
 engine.h
+forth.h
 keyboard.h
     )
 	

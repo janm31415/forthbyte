@@ -346,6 +346,8 @@ text get_selection(file_buffer fb)
   auto p1 = get_actual_position(fb);
   if (!has_selection(fb))
     {
+    if (fb.content.empty() || fb.content[p1.row].empty())
+      return text();
     return text().push_back(line().push_back(fb.content[p1.row][p1.col]));
     //return text();
     }
