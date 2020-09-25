@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <map>
 #include <string>
@@ -492,6 +493,7 @@ namespace forth
   template <class T, int N>
   void interpreter<T, N>::set_variable_value(const std::string& name, T value)
     {
+    using namespace details;
     auto it = variables.find(name);
     if (it != variables.end())
       {
