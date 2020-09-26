@@ -22,7 +22,7 @@ namespace
     audio_pos += len;
     audio_len -= len;
 
-    current_t += len / 2;
+    current_t += len ;
 
     if (audio_len == 0)
       ((music*)userdata)->swap_buffers();
@@ -30,7 +30,7 @@ namespace
 
   }
 
-music::music() : _sample_rate(8000), _t(0), _samples_per_go(256), _buffer_width(4), _buffer_is_filled(false),
+music::music() : _sample_rate(8000), _t(0), _samples_per_go(1024), _buffer_width(1), _buffer_is_filled(false),
 _playing(false), _float(false)
   {
   _buffer_to_play.resize(_samples_per_go*_buffer_width, 127);
@@ -52,12 +52,13 @@ void music::fill_buffer(compiler& c)
       for (uint64_t cnt = 0; cnt < _samples_per_go*_buffer_width; ++cnt)
         {
         double d = c.run_float(_t);
-        d = (d + 1.0)*0.5*255.0;
-        if (d < 0.0)
-          d = 0.0;
-        if (d > 255.0)
-          d = 255.0;
-        _buffer_to_fill[cnt] = (unsigned char)d;
+        d = (d + 1.0)*128.0;
+        int res = (int)std::floor(d);
+        if (res < 0)
+          res = 0;
+        if (res > 255)
+          res = 255;
+        _buffer_to_fill[cnt] = (unsigned char)res;
         ++_t;
         }
       }
@@ -118,8 +119,8 @@ void music::play(compiler& c)
 void music::stop()
   {
   _playing = false;
-  if (_t > audio_len / 2)
-    _t -= audio_len / 2;
+  if (_t > audio_len)
+    _t -= audio_len;
   SDL_CloseAudio();
   }
 
