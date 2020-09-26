@@ -83,6 +83,7 @@ namespace forth
 
       void set_variable_value(const std::string& name, T value);
 
+      T top();
       T pop();
       void push(T val);
 
@@ -96,6 +97,11 @@ namespace forth
       void primitive_or();
       void primitive_xor();
       void primitive_sin();
+      void primitive_cos();
+      void primitive_mod();
+      void primitive_less();
+      void primitive_dup();
+      void primitive_pick();
 
       void eval(const Program& prog);
 
@@ -240,7 +246,7 @@ namespace forth
 
     inline bool _ignore_character(const char& ch)
       {
-      return (ch == ' ' || ch == '\n' || ch == '\t');
+      return (ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r');
       }
 
     inline bool _hex_to_uint64_t(uint64_t& hexvalue, const std::string& h)
@@ -422,6 +428,11 @@ namespace forth
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("|", &interpreter::primitive_or));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("^", &interpreter::primitive_xor));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("sin", &interpreter::primitive_sin));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("cos", &interpreter::primitive_cos));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("%", &interpreter::primitive_mod));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("<", &interpreter::primitive_less));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("dup", &interpreter::primitive_dup));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("pick", &interpreter::primitive_pick));
     }
 
   template <class T, int N>
@@ -595,6 +606,12 @@ namespace forth
     }
 
   template <class T, int N>
+  inline T interpreter<T, N>::top()
+    {
+    return stack_pointer ? stack[stack_pointer-1] : stack[N-1];
+    }
+
+  template <class T, int N>
   inline T interpreter<T, N>::pop()
     {
     --stack_pointer;
@@ -688,7 +705,50 @@ namespace forth
   void interpreter<T, N>::primitive_sin()
     {
     T a = pop();
-    push(std::sin(a));
+    push((T)std::sin(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_cos()
+    {
+    T a = pop();
+    push((T)std::cos(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_mod()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)((int64_t)a % (int64_t)b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_less()
+    {
+    T b = pop();
+    T a = pop();
+    if (a < b)
+      push((T)0xffffffffffffffff);
+    else
+      push((T)0);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_dup()
+    {
+    T a = top();
+    push(a);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_pick()
+    {
+    T a = pop();
+    int64_t sp = stack_pointer - (int64_t)a - 1;    
+    while (sp < 0)
+      sp += N;
+    push(stack[sp % N]);
     }
 
   } // namespace forth
