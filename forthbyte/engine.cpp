@@ -421,7 +421,7 @@ namespace
     {
     keyword_data kd;
 
-    std::string in = "t + - * / & | ^ >> <<";
+    std::string in = "t + - * / & | ^ >> << not sin cos % < > <= >= = <> dup pick drop 2dup over nip tuck swap rot -rot min max pow atan2 negate tan log exp sqrt floor ceil abs";
     kd.keywords_1 = break_string(in);
     std::sort(kd.keywords_1.begin(), kd.keywords_1.end());
 
@@ -1112,9 +1112,18 @@ app_state save_file(app_state state)
   return state;
   }
 
+app_state make_save_buffer(app_state state);
+
 std::optional<app_state> exit(app_state state)
   {
-  return std::nullopt;
+  if ((state.buffer.modification_mask & 1) == 1)
+    {
+    state.operation = op_query_save;
+    state.operation_stack.push_back(op_exit);
+    return make_save_buffer(state);
+    }
+  else
+    return std::nullopt;
   }
 
 app_state make_new_buffer(app_state state)
@@ -1136,7 +1145,7 @@ std::optional<app_state> ret_operation(app_state state, compiler& c, music& m)
       case op_save: state = save_file(state); break;
       case op_query_save: state = save_file(state); break;
       case op_new: state = make_new_buffer(state); break;
-      case op_exit: return exit(state);
+      case op_exit: return std::nullopt;
       default: break;
       }
     if (state.operation_stack.empty())
@@ -1194,14 +1203,7 @@ std::optional<app_state> cancel(app_state state)
   {
   if (state.operation == op_editing)
     {
-    if ((state.buffer.modification_mask & 1) == 1)
-      {
-      state.operation = op_query_save;
-      state.operation_stack.push_back(op_exit);
-      return make_save_buffer(state);
-      }
-    else
-      return exit(state);
+    return exit(state);
     }
   else
     {
@@ -1582,15 +1584,15 @@ engine::engine(int argc, char** argv)
     state.buffer = read_from_file(std::string(argv[1]));
   else
     state.buffer = make_empty_buffer();
-  state.buffer = init_lexer_status(state.buffer);
   state.buffer = set_multiline_comments(state.buffer);
-  state = compile_buffer(state, c, m);
+  state.buffer = init_lexer_status(state.buffer);  
   state.operation = op_editing;
   state.scroll_row = 0;
   state.operation_scroll_row = 0;
   state.playing = false;
   state.senv.show_all_characters = false;
   state.senv.tab_space = 8;
+  state = compile_buffer(state, c, m);
 
   SDL_ShowCursor(1);
   SDL_SetWindowSize(pdc_window, w, h);

@@ -84,6 +84,7 @@ namespace forth
       void set_variable_value(const std::string& name, T value);
 
       T top();
+      T second();
       T pop();
       void push(T val);
 
@@ -96,12 +97,38 @@ namespace forth
       void primitive_and();
       void primitive_or();
       void primitive_xor();
+      void primitive_not();
       void primitive_sin();
       void primitive_cos();
       void primitive_mod();
       void primitive_less();
+      void primitive_greater();
+      void primitive_leq();
+      void primitive_geq();
+      void primitive_eq();
+      void primitive_neq();
       void primitive_dup();
       void primitive_pick();
+      void primitive_drop();
+      void primitive_2dup();
+      void primitive_over();
+      void primitive_nip();
+      void primitive_tuck();
+      void primitive_swap();
+      void primitive_rot();
+      void primitive_mrot();
+      void primitive_min();
+      void primitive_max();
+      void primitive_pow();
+      void primitive_atan2();
+      void primitive_negate();
+      void primitive_tan();
+      void primitive_log();
+      void primitive_exp();
+      void primitive_sqrt();
+      void primitive_floor();
+      void primitive_ceil();
+      void primitive_abs();
 
       void eval(const Program& prog);
 
@@ -427,12 +454,38 @@ namespace forth
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("&", &interpreter::primitive_and));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("|", &interpreter::primitive_or));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("^", &interpreter::primitive_xor));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("not", &interpreter::primitive_not));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("sin", &interpreter::primitive_sin));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("cos", &interpreter::primitive_cos));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("%", &interpreter::primitive_mod));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("<", &interpreter::primitive_less));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>(">", &interpreter::primitive_greater));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("<=", &interpreter::primitive_leq));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>(">=", &interpreter::primitive_geq));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("=", &interpreter::primitive_eq));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("<>", &interpreter::primitive_neq));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("dup", &interpreter::primitive_dup));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("pick", &interpreter::primitive_pick));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("drop", &interpreter::primitive_drop));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("2dup", &interpreter::primitive_2dup));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("over", &interpreter::primitive_over));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("nip", &interpreter::primitive_nip));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("tuck", &interpreter::primitive_tuck));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("swap", &interpreter::primitive_swap));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("rot", &interpreter::primitive_rot));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("-rot", &interpreter::primitive_mrot));   
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("min", &interpreter::primitive_min));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("max", &interpreter::primitive_max));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("pow", &interpreter::primitive_pow));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("atan2", &interpreter::primitive_atan2));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("negate", &interpreter::primitive_negate));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("tan", &interpreter::primitive_tan));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("log", &interpreter::primitive_log));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("exp", &interpreter::primitive_exp));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("sqrt", &interpreter::primitive_sqrt));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("floor", &interpreter::primitive_floor));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("ceil", &interpreter::primitive_ceil));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("abs", &interpreter::primitive_abs));
     }
 
   template <class T, int N>
@@ -605,10 +658,70 @@ namespace forth
       }
     }
 
+  template <class T>
+  struct true_value
+    {
+    inline static T value = (T)0xffffffffffffffff;
+    };
+
+  template <>
+  struct true_value<double>
+    {
+    inline static double value = 1.0;
+    };
+
+  template <>
+  struct true_value<float>
+    {
+    inline static double value = 1.f;
+    };
+
+  template <class T>
+  inline T not_value(T input)
+    {
+    return (T)(~(uint64_t)input);
+    }
+
+  template <>
+  inline double not_value(double input)
+    {
+    return input == 0.0 ? 1.0 : 0.0;
+    }
+
+  template <>
+  inline float not_value(float input)
+    {
+    return input == 0.f ? 1.f : 0.f;
+    }
+
+  template <class T>
+  inline T modulo(T a, T b)
+    {
+    return a % b;
+    }
+
+  template <>
+  inline double modulo(double a, double b)
+    {
+    return fmod(a, b);
+    }
+
+  template <>
+  inline float modulo(float a, float b)
+    {
+    return fmod(a, b);
+    }
+
   template <class T, int N>
   inline T interpreter<T, N>::top()
     {
     return stack_pointer ? stack[stack_pointer-1] : stack[N-1];
+    }
+
+  template <class T, int N>
+  inline T interpreter<T, N>::second()
+    {
+    return stack_pointer>1 ? stack[stack_pointer - 2] : stack[stack_pointer + N - 2];
     }
 
   template <class T, int N>
@@ -702,6 +815,13 @@ namespace forth
     }
 
   template <class T, int N>
+  void interpreter<T, N>::primitive_not()
+    {
+    T a = pop();
+    push(not_value(a));
+    }
+
+  template <class T, int N>
   void interpreter<T, N>::primitive_sin()
     {
     T a = pop();
@@ -720,7 +840,7 @@ namespace forth
     {
     T b = pop();
     T a = pop();
-    push((T)((int64_t)a % (int64_t)b));
+    push(modulo(a, b));
     }
 
   template <class T, int N>
@@ -729,7 +849,62 @@ namespace forth
     T b = pop();
     T a = pop();
     if (a < b)
-      push((T)0xffffffffffffffff);
+      push(true_value<T>::value);
+    else
+      push((T)0);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_greater()
+    {
+    T b = pop();
+    T a = pop();
+    if (a > b)
+      push(true_value<T>::value);
+    else
+      push((T)0);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_leq()
+    {
+    T b = pop();
+    T a = pop();
+    if (a <= b)
+      push(true_value<T>::value);
+    else
+      push((T)0);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_geq()
+    {
+    T b = pop();
+    T a = pop();
+    if (a >= b)
+      push(true_value<T>::value);
+    else
+      push((T)0);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_eq()
+    {
+    T b = pop();
+    T a = pop();
+    if (a == b)
+      push(true_value<T>::value);
+    else
+      push((T)0);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_neq()
+    {
+    T b = pop();
+    T a = pop();
+    if (a != b)
+      push(true_value<T>::value);
     else
       push((T)0);
     }
@@ -737,6 +912,7 @@ namespace forth
   template <class T, int N>
   void interpreter<T, N>::primitive_dup()
     {
+    // (x -- xx)
     T a = top();
     push(a);
     }
@@ -749,6 +925,180 @@ namespace forth
     while (sp < 0)
       sp += N;
     push(stack[sp % N]);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_drop()
+    {
+    // (x --)
+    --stack_pointer;
+    if (stack_pointer < 0)
+      stack_pointer = N - 1;
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_2dup()
+    {
+    //(xy -- xyxy)
+    T a = top();
+    T b = second();
+    push(b);
+    push(a);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_over()
+    {
+    //(xy -- xyx)
+    T a = second();
+    push(a);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_nip()
+    {
+    //(xy -- y)
+    T a = pop();
+    stack[stack_pointer ? stack_pointer-1 : N-1] = a;
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_tuck()
+    {
+    // (xy -- yxy)
+    T b = pop();
+    T a = pop();
+    push(b);
+    push(a);
+    push(b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_swap()
+    {
+    // (xy -- yx)
+    T b = pop();
+    T a = pop();
+    push(b);
+    push(a);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_rot()
+    {
+    // (abc -- bca)
+    T c = pop();
+    T b = pop();
+    T a = pop();
+    push(b);
+    push(c);
+    push(a);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_mrot()
+    {
+    // (abc -- cab)
+    T c = pop();
+    T b = pop();
+    T a = pop();
+    push(c);
+    push(a);
+    push(b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_min()
+    {
+    T b = pop();
+    T a = pop();
+    if (a < b)
+      push(a);
+    else
+      push(b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_max()
+    {
+    T b = pop();
+    T a = pop();
+    if (a > b)
+      push(a);
+    else
+      push(b);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_pow()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)std::pow(a, b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_atan2()
+    {
+    T b = pop();
+    T a = pop();
+    push((T)std::atan2(a, b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_negate()
+    {
+    T a = pop();
+    push((T)-a);
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_tan()
+    {
+    T a = pop();
+    push((T)std::tan(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_log()
+    {
+    T a = pop();
+    push((T)std::log(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_exp()
+    {
+    T a = pop();
+    push((T)std::exp(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_sqrt()
+    {
+    T a = pop();
+    push((T)std::sqrt(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_floor()
+    {
+    T a = pop();
+    push((T)std::floor(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_ceil()
+    {
+    T a = pop();
+    push((T)std::ceil(a));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_abs()
+    {
+    T a = pop();
+    push((T)std::abs(a));
     }
 
   } // namespace forth
