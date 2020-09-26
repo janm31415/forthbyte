@@ -383,7 +383,16 @@ namespace forth
         ++s;
         ++column_nr;
         break;
-        }        
+        }       
+        case '#': // can be used for preprocessing
+        {
+        _treat_buffer(buff, tokens, line_nr, column_nr);
+        while (*s && *s != '\n') // preprocessor stuff, so skip till end of the line
+          ++s;
+        ++s;
+        ++line_nr;
+        column_nr = 1;
+        }
         }
 
       if (s_copy == s)

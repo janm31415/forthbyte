@@ -31,7 +31,7 @@ namespace
   }
 
 music::music() : _sample_rate(8000), _t(0), _samples_per_go(1024), _buffer_width(1), _buffer_is_filled(false),
-_playing(false)
+_playing(false), _float(false)
   {
   _buffer_to_play.resize(_samples_per_go*_buffer_width, 127);
   _buffer_to_fill.resize(_samples_per_go*_buffer_width, 127);

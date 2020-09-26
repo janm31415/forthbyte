@@ -89,6 +89,12 @@ void draw_music_info(app_state state, const music& m)
   getmaxyx(stdscr, rows, cols);
   move(rows - 3, 0);
   std::stringstream str;
+  str << "Sample rate: " << m.get_sample_rate();
+  str << "  ";
+  if (m.is_byte())
+    str << "ByteBeat   ";
+  else
+    str << "FloatBeat  ";
   str << "t: " << m.get_estimated_timer_based_on_clock();
   std::string line = str.str();
   line = line.substr(0, cols);
@@ -393,6 +399,45 @@ void draw_help_text(app_state state)
     }
   }
 
+namespace
+  {
+  std::vector<std::wstring> break_string(std::string in)
+    {
+    std::vector<std::wstring> out;
+    while (!in.empty())
+      {
+      auto splitpos = in.find_first_of(' ');
+      std::string keyword = in.substr(0, splitpos);
+      if (splitpos != std::string::npos)
+        in.erase(0, splitpos + 1);
+      else
+        in.clear();
+      out.push_back(jtk::convert_string_to_wstring(keyword));
+      }
+    return out;
+    }
+
+  keyword_data _generate_keyword_data()
+    {
+    keyword_data kd;
+
+    std::string in = "t + - * / & | ^ >> <<";
+    kd.keywords_1 = break_string(in);
+    std::sort(kd.keywords_1.begin(), kd.keywords_1.end());
+
+    in = ": ; #samplerate #byte #float";
+    kd.keywords_2 = break_string(in);
+    std::sort(kd.keywords_2.begin(), kd.keywords_2.end());
+    return kd;
+    }
+  }
+
+const keyword_data& get_keyword_data()
+  {
+  static keyword_data kd = _generate_keyword_data();
+  return kd;
+  }
+
 void draw_buffer(file_buffer fb, int64_t scroll_row, const env_settings& senv)
   {
   int offset_x = 1;
@@ -414,6 +459,8 @@ void draw_buffer(file_buffer fb, int64_t scroll_row, const env_settings& senv)
     underline = find_corresponding_token(fb, cursor, current.row, current.row + maxrow - 1);
     }
 
+  const keyword_data& kd = get_keyword_data();
+
   attrset(DEFAULT_COLOR);
   
   int r = 0;
@@ -434,8 +481,7 @@ void draw_buffer(file_buffer fb, int64_t scroll_row, const env_settings& senv)
 
     //int draw_line(int& wide_characters_offset, file_buffer fb, position& current, position cursor, position buffer_pos, position underline, chtype base_color, int r, int xoffset, int maxcol, std::optional<position> start_selection, bool rectangular, bool active, const keyword_data& kd, const env_settings& senv)
 
-    int wide_characters_offset = 0;
-    keyword_data kd;
+    int wide_characters_offset = 0;    
     int multiline_offset_x = draw_line(wide_characters_offset, fb, current, cursor, fb.pos, underline, DEFAULT_COLOR, r + offset_y, offset_x, maxcol, fb.start_selection, fb.rectangular_selection, true, kd, senv);
 
     int x = (int)current.col + multiline_offset_x + wide_characters_offset;
@@ -1218,11 +1264,62 @@ f
   return state;
   }
 
-app_state compile_buffer(app_state state, compiler& c)
+app_state compile_buffer(app_state state, compiler& c, music& m)
   {
   try
     {
+    bool _float = false;
+    //preprocessor
+    auto it = state.buffer.content.begin();
+    auto it_end = state.buffer.content.end();
+    for (; it != it_end; ++it)
+      {
+      auto ln = *it;
+      auto line_it = ln.begin();
+      auto line_it_end = ln.end();
+      while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
+        ++line_it;
+      std::wstring first_word = read_next_word(line_it, line_it_end);
+      if (first_word == L"#samplerate")
+        {
+        line_it += first_word.length();
+        while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
+          ++line_it;
+        std::wstring second_word = read_next_word(line_it, line_it_end);
+        std::wstringstream str;
+        str << second_word;
+        uint64_t sample_rate;
+        str >> sample_rate;
+        uint64_t old_sample_rate = m.get_sample_rate();
+        if (sample_rate != old_sample_rate)
+          {
+          if (state.playing)
+            m.stop();
+          m.set_sample_rate(sample_rate);
+          if (state.playing)
+            m.play(c);
+          }
+        }
+      else if (first_word == L"#byte")
+        {
+        _float = false;
+        }
+      else if (first_word == L"#float")
+        {
+        _float = true;
+        }
+      else if (!first_word.empty() && first_word[0] == L'#')
+        {
+        std::stringstream str;
+        str << "Unknown preprocessor directive: " << jtk::convert_wstring_to_string(first_word);
+        throw std::logic_error(str.str());
+        }
+      }
     c.compile_byte(buffer_to_string(state.buffer));
+    if (_float)
+      m.set_float();
+    else
+      m.set_byte();
     state.message = string_to_line("[Build succeeded]");
     }
   catch (std::logic_error& e)
@@ -1237,8 +1334,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
   SDL_Event event;
   auto tic = std::chrono::steady_clock::now();
   for (;;)
-    {
-    draw_music_info(state, m);
+    {    
     while (SDL_PollEvent(&event))
       {
       keyb.handle_event(event);
@@ -1304,7 +1400,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
-            return compile_buffer(state, c);
+            return compile_buffer(state, c, m);
             }
           }
           case SDLK_c:
@@ -1449,6 +1545,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
         } // switch (event.type)
       }
     m.fill_buffer(c);
+    draw_music_info(state, m);
     std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
     }
   }
@@ -1489,7 +1586,7 @@ engine::engine(int argc, char** argv)
     state.buffer = make_empty_buffer();
   state.buffer = init_lexer_status(state.buffer);
   state.buffer = set_multiline_comments(state.buffer);
-  state = compile_buffer(state, c);
+  state = compile_buffer(state, c, m);
   state.operation = op_editing;
   state.scroll_row = 0;
   state.operation_scroll_row = 0;

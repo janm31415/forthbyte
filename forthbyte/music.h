@@ -35,6 +35,14 @@ class music
 
     std::chrono::high_resolution_clock::time_point get_starting_point_clock();
 
+    void set_float() { _float = true; }
+
+    void set_byte() { _float = false; }
+
+    bool is_float() const { return _float; }
+
+    bool is_byte() const { return !_float; }
+
   private:
     uint32_t _sample_rate;
     uint32_t _samples_per_go;
@@ -45,4 +53,5 @@ class music
     std::vector<unsigned char> _buffer_to_play, _buffer_to_fill;
     bool _buffer_is_filled;
     bool _playing;
+    bool _float;
   };
