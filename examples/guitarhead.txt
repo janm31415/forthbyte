@@ -1,0 +1,11 @@
+/*
+Guitarhead, from Glitch Machine.
+*/
+
+t 5 * 3 >> t &
+t 4096 % 1024 < &
+t 12 >> 19 & 1 + 25 * pick 208 % 3 *
++ + 4 / 255 &
+dup
+dup
+4 *
