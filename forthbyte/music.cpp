@@ -30,7 +30,7 @@ namespace
 
   }
 
-music::music() : _sample_rate(8000), _t(0), _samples_per_go(1024), _buffer_width(1), _buffer_is_filled(false),
+music::music() : _sample_rate(8000), _t(0), _samples_per_go(256), _buffer_width(4), _buffer_is_filled(false),
 _playing(false), _float(false)
   {
   _buffer_to_play.resize(_samples_per_go*_buffer_width, 127);
@@ -47,11 +47,28 @@ void music::fill_buffer(compiler& c)
   {
   if (_playing && !_buffer_is_filled)
     {
-    for (uint64_t cnt = 0; cnt < _samples_per_go*_buffer_width; ++cnt)
+    if (_float)
       {
-      auto ch = c.run_byte(_t);
-      _buffer_to_fill[cnt] = ch;
-      ++_t;
+      for (uint64_t cnt = 0; cnt < _samples_per_go*_buffer_width; ++cnt)
+        {
+        double d = c.run_float(_t);
+        d = (d + 1.0)*0.5*255.0;
+        if (d < 0.0)
+          d = 0.0;
+        if (d > 255.0)
+          d = 255.0;
+        _buffer_to_fill[cnt] = (unsigned char)d;
+        ++_t;
+        }
+      }
+    else
+      {
+      for (uint64_t cnt = 0; cnt < _samples_per_go*_buffer_width; ++cnt)
+        {
+        auto ch = c.run_byte(_t);
+        _buffer_to_fill[cnt] = ch;
+        ++_t;
+        }
       }
     _buffer_is_filled = true;
     }

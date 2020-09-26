@@ -95,6 +95,7 @@ namespace forth
       void primitive_and();
       void primitive_or();
       void primitive_xor();
+      void primitive_sin();
 
       void eval(const Program& prog);
 
@@ -420,6 +421,7 @@ namespace forth
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("&", &interpreter::primitive_and));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("|", &interpreter::primitive_or));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("^", &interpreter::primitive_xor));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("sin", &interpreter::primitive_sin));
     }
 
   template <class T, int N>
@@ -680,6 +682,13 @@ namespace forth
     T b = pop();
     T a = pop();
     push((T)((uint64_t)a ^ (uint64_t)b));
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_sin()
+    {
+    T a = pop();
+    push(std::sin(a));
     }
 
   } // namespace forth

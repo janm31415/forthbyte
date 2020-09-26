@@ -532,12 +532,8 @@ app_state draw(app_state state, const music& m)
     current.col = 0;
     current.row = 0;
     std::string txt = get_operation_text(state.operation);
-    move((int)rows - 3, 0);
-    std::vector<chtype> attribute_stack;
-    attrset(DEFAULT_COLOR);
-    attribute_stack.push_back(DEFAULT_COLOR);
-    attron(A_BOLD);
-    attribute_stack.push_back(A_BOLD);
+    move((int)rows - 4, 0);
+    attrset(DEFAULT_COLOR);   
     for (auto ch : txt)
       addch(ch);
     int maxrow, maxcol;
@@ -548,34 +544,31 @@ app_state draw(app_state state, const music& m)
     int multiline_offset_x = txt.length();
     keyword_data kd;
     if (!state.operation_buffer.content.empty())
-      multiline_offset_x = draw_line(wide_characters_offset, state.operation_buffer, current, cursor, state.operation_buffer.pos, position(-1, -1), DEFAULT_COLOR | A_BOLD, rows - 3, multiline_offset_x, cols_available, state.operation_buffer.start_selection, state.operation_buffer.rectangular_selection, true, kd, state.senv);
+      multiline_offset_x = draw_line(wide_characters_offset, state.operation_buffer, current, cursor, state.operation_buffer.pos, position(-1, -1), DEFAULT_COLOR | A_BOLD, rows - 4, multiline_offset_x, cols_available, state.operation_buffer.start_selection, state.operation_buffer.rectangular_selection, true, kd, state.senv);
     int x = (int)current.col + multiline_offset_x + wide_characters_offset;
     if ((current == cursor))
       {
-      move((int)rows - 3, (int)x);
+      move((int)rows - 4, (int)x);
       attron(A_REVERSE);
       addch(' ');
       attroff(A_REVERSE);
       }
-    attroff(attribute_stack.back());
-    attribute_stack.pop_back();
     }
   else
     {
+    attrset(DEFAULT_COLOR);
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
     int message_length = (int)state.message.size();
     int offset = (cols - message_length) / 2;
     if (offset > 0)
       {
-      attron(A_BOLD);
       for (auto ch : state.message)
         {
         move(rows - 4, offset);
         addch(ch);
         ++offset;
         }
-      attroff(A_BOLD);
       }
     }
 
@@ -983,7 +976,76 @@ file_buffer set_multiline_comments(file_buffer fb)
   return fb;
   }
 
-app_state open_file(app_state state)
+
+app_state compile_buffer(app_state state, compiler& c, music& m)
+  {
+  try
+    {
+    bool _float = false;
+    uint64_t sample_rate = 8000;
+    //preprocessor
+    auto it = state.buffer.content.begin();
+    auto it_end = state.buffer.content.end();
+    for (; it != it_end; ++it)
+      {
+      auto ln = *it;
+      auto line_it = ln.begin();
+      auto line_it_end = ln.end();
+      while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
+        ++line_it;
+      std::wstring first_word = read_next_word(line_it, line_it_end);
+      if (first_word == L"#samplerate")
+        {
+        line_it += first_word.length();
+        while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
+          ++line_it;
+        std::wstring second_word = read_next_word(line_it, line_it_end);
+        std::wstringstream str;
+        str << second_word;        
+        str >> sample_rate;        
+        }
+      else if (first_word == L"#byte")
+        {
+        _float = false;
+        }
+      else if (first_word == L"#float")
+        {
+        _float = true;
+        }
+      else if (!first_word.empty() && first_word[0] == L'#')
+        {
+        std::stringstream str;
+        str << "Unknown preprocessor directive: " << jtk::convert_wstring_to_string(first_word);
+        throw std::logic_error(str.str());
+        }
+      }
+    if (_float)
+      c.compile_float(buffer_to_string(state.buffer));
+    else
+      c.compile_byte(buffer_to_string(state.buffer));
+    if (_float)
+      m.set_float();
+    else
+      m.set_byte();
+    uint64_t old_sample_rate = m.get_sample_rate();
+    if (sample_rate != old_sample_rate)
+      {
+      if (state.playing)
+        m.stop();
+      m.set_sample_rate(sample_rate);
+      if (state.playing)
+        m.play(c);
+      }
+    state.message = string_to_line("[Build succeeded]");
+    }
+  catch (std::logic_error& e)
+    {
+    state.message = string_to_line(e.what());
+    }
+  return state;
+  }
+
+app_state open_file(app_state state, compiler& c, music& m)
   {
   std::wstring wfilename;
   if (!state.operation_buffer.content.empty())
@@ -1018,6 +1080,7 @@ app_state open_file(app_state state)
     }
   state.buffer = set_multiline_comments(state.buffer);
   state.buffer = init_lexer_status(state.buffer);
+  state = compile_buffer(state, c, m);
   return state;
   }
 
@@ -1062,14 +1125,14 @@ app_state make_new_buffer(app_state state)
   return state;
   }
 
-std::optional<app_state> ret_operation(app_state state)
+std::optional<app_state> ret_operation(app_state state, compiler& c, music& m)
   {
   bool done = false;
   while (!done)
     {
     switch (state.operation)
       {
-      case op_open: state = open_file(state); break;
+      case op_open: state = open_file(state, c, m); break;
       case op_save: state = save_file(state); break;
       case op_query_save: state = save_file(state); break;
       case op_new: state = make_new_buffer(state); break;
@@ -1090,11 +1153,11 @@ std::optional<app_state> ret_operation(app_state state)
   return state;
   }
 
-std::optional<app_state> ret(app_state state)
+std::optional<app_state> ret(app_state state, compiler& c, music& m)
   {
   if (state.operation == op_editing)
     return ret_editor(state);
-  return ret_operation(state);
+  return ret_operation(state, c, m);
   }
 
 app_state clear_operation_buffer(app_state state)
@@ -1264,71 +1327,6 @@ f
   return state;
   }
 
-app_state compile_buffer(app_state state, compiler& c, music& m)
-  {
-  try
-    {
-    bool _float = false;
-    //preprocessor
-    auto it = state.buffer.content.begin();
-    auto it_end = state.buffer.content.end();
-    for (; it != it_end; ++it)
-      {
-      auto ln = *it;
-      auto line_it = ln.begin();
-      auto line_it_end = ln.end();
-      while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
-        ++line_it;
-      std::wstring first_word = read_next_word(line_it, line_it_end);
-      if (first_word == L"#samplerate")
-        {
-        line_it += first_word.length();
-        while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
-          ++line_it;
-        std::wstring second_word = read_next_word(line_it, line_it_end);
-        std::wstringstream str;
-        str << second_word;
-        uint64_t sample_rate;
-        str >> sample_rate;
-        uint64_t old_sample_rate = m.get_sample_rate();
-        if (sample_rate != old_sample_rate)
-          {
-          if (state.playing)
-            m.stop();
-          m.set_sample_rate(sample_rate);
-          if (state.playing)
-            m.play(c);
-          }
-        }
-      else if (first_word == L"#byte")
-        {
-        _float = false;
-        }
-      else if (first_word == L"#float")
-        {
-        _float = true;
-        }
-      else if (!first_word.empty() && first_word[0] == L'#')
-        {
-        std::stringstream str;
-        str << "Unknown preprocessor directive: " << jtk::convert_wstring_to_string(first_word);
-        throw std::logic_error(str.str());
-        }
-      }
-    c.compile_byte(buffer_to_string(state.buffer));
-    if (_float)
-      m.set_float();
-    else
-      m.set_byte();
-    state.message = string_to_line("[Build succeeded]");
-    }
-  catch (std::logic_error& e)
-    {
-    state.message = string_to_line(e.what());
-    }
-  return state;
-  }
-
 std::optional<app_state> process_input(app_state state, compiler& c, music& m)
   {
   SDL_Event event;
@@ -1368,7 +1366,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           case SDLK_HOME: return move_home(state);
           case SDLK_END: return move_end(state);
           case SDLK_TAB: return tab(state);
-          case SDLK_RETURN: return ret(state);
+          case SDLK_RETURN: return ret(state, c, m);
           case SDLK_BACKSPACE: return backspace(state);
           case SDLK_DELETE: return del(state);
           case SDLK_LSHIFT:
@@ -1446,7 +1444,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
               {
               state.operation = state.operation_stack.back();
               state.operation_stack.pop_back();
-              return ret(state);
+              return ret(state, c, m);
               }
               default: return new_buffer(state);
               }
@@ -1504,7 +1502,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
               case op_query_save:
               {
               state.operation = op_save;
-              return ret(state);
+              return ret(state, c, m);
               }
               default: return redo(state);
               }
