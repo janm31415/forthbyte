@@ -114,7 +114,7 @@ void music::reset_timer()
   _buffer_is_filled = false;
   }
 
-uint64_t music::get_timer()
+uint64_t music::get_timer() const
   {
   return current_t;
   }
@@ -125,7 +125,7 @@ void music::set_sample_rate(uint32_t sample_rate)
   _sample_rate = sample_rate;
   }
 
-uint64_t music::get_estimated_timer_based_on_clock()
+uint64_t music::get_estimated_timer_based_on_clock() const
   {
   auto tic = std::chrono::high_resolution_clock::now();
   double seconds = double(std::chrono::duration_cast<std::chrono::microseconds>(tic - _start).count()) / 1000000.0;

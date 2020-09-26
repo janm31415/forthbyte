@@ -31,6 +31,7 @@ engine.h
 forth.h
 keyboard.h
 music.h
+utils.h
     )
 	
 set(SRCS
@@ -42,6 +43,7 @@ engine.cpp
 keyboard.cpp
 main.cpp
 music.cpp
+utils.cpp
 )
 
 

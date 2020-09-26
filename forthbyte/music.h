@@ -25,16 +25,15 @@ class music
 
     void init_buffer_for_playing(compiler& c);
 
-    uint64_t get_timer();
+    uint64_t get_timer() const;
 
     void set_sample_rate(uint32_t sample_rate);
 
     uint32_t get_sample_rate() const { return _sample_rate; }
 
-    uint64_t get_estimated_timer_based_on_clock();
+    uint64_t get_estimated_timer_based_on_clock() const;
 
     std::chrono::high_resolution_clock::time_point get_starting_point_clock();
-
 
   private:
     uint32_t _sample_rate;

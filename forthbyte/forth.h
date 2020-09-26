@@ -326,31 +326,47 @@ namespace forth
       switch (*s)
         {
 
-        case '(': // treat as multiline comment
+        case '/': 
         {
-        _treat_buffer(buff, tokens, line_nr, column_nr);
-        int nesting = 1;
-        ++s; ++column_nr;
-        while (*s && nesting > 0)
+        const char* t = s;
+        ++t;
+        if (t && *t == '/') // treat as single line comment
           {
-          if (*s == '\n')
+          _treat_buffer(buff, tokens, line_nr, column_nr);
+          while (*s && *s != '\n') // comment, so skip till end of the line
+            ++s;
+          ++s;
+          ++line_nr;
+          column_nr = 1;
+          }
+        else if (t && *t == '*') // treat as multiline comment
+          {
+          _treat_buffer(buff, tokens, line_nr, column_nr);
+          ++s;
+          bool done = false;
+          while (*s && !done)
             {
-            ++line_nr;
-            column_nr = 0;
+            if (*s == '\n')
+              {
+              ++line_nr;
+              column_nr = 0;
+              }
+            if (*s == '*')
+              {
+              t = s;
+              ++t;
+              if (t && *t == '/')
+                {
+                done = true;
+                ++s;
+                ++column_nr;
+                }
+              }
+            ++s;
+            ++column_nr;
             }
-          if (*s == '(')
-            ++nesting;
-          if (*s == ')')
-            --nesting;
-          ++s;
-          ++column_nr;
           }
-        if (*s)
-          {
-          ++s;
-          ++column_nr;
-          }
-        break;
+        break;        
         }
         case ':':
         {
@@ -367,17 +383,7 @@ namespace forth
         ++s;
         ++column_nr;
         break;
-        }
-        case '\\':
-        {
-        _treat_buffer(buff, tokens, line_nr, column_nr);
-        while (*s && *s != '\n') // comment, so skip till end of the line
-          ++s;
-        ++s;
-        ++line_nr;
-        column_nr = 1;
-        break;
-        }
+        }        
         }
 
       if (s_copy == s)
