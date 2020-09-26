@@ -28,6 +28,7 @@ clipboard.h
 colors.h
 compiler.h
 engine.h
+fbicon.h
 forth.h
 keyboard.h
 music.h
@@ -40,6 +41,7 @@ clipboard.cpp
 colors.cpp
 compiler.cpp
 engine.cpp
+fbicon.cpp
 keyboard.cpp
 main.cpp
 music.cpp
@@ -66,7 +68,7 @@ add_definitions(-DPDC_FORCE_UTF8)
 add_definitions(-DPDC_WIDE)
 
 if (WIN32)
-add_executable(forthbyte WIN32 ${HDRS} ${SRCS})
+add_executable(forthbyte WIN32 ${HDRS} ${SRCS} forthbyte.rc resource.h)
 endif (WIN32)
 
 if (UNIX)

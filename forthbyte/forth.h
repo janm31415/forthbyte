@@ -772,7 +772,10 @@ namespace forth
     {
     T b = pop();
     T a = pop();
-    push(a / b);
+    if (b)
+      push(a / b);
+    else
+      push(std::numeric_limits<T>::infinity());
     }
 
   template <class T, int N>

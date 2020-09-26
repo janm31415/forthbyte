@@ -1129,6 +1129,8 @@ std::optional<app_state> exit(app_state state)
 app_state make_new_buffer(app_state state)
   {
   state.buffer = make_empty_buffer();
+  state.buffer = set_multiline_comments(state.buffer);
+  state.buffer = init_lexer_status(state.buffer);
   state.scroll_row = 0;
   state.message = string_to_line("[New]");
   return state;
