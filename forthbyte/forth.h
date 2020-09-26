@@ -7,6 +7,7 @@
 #include <sstream>
 #include <variant>
 #include <vector>
+#include <cmath>
 
 namespace forth
   {
