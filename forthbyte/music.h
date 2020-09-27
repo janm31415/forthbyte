@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <fstream>
 
 #include <chrono>
 
@@ -43,6 +44,8 @@ class music
 
     bool is_byte() const { return !_float; }
 
+    void record(unsigned char* stream, int len);
+
   private:
     uint32_t _sample_rate;
     uint32_t _samples_per_go;
@@ -54,4 +57,6 @@ class music
     bool _buffer_is_filled;
     bool _playing;
     bool _float;
+    FILE* out;
+    long data_chunk_pos;
   };

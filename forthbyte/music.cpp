@@ -18,7 +18,7 @@ namespace
 
     len = (len > audio_len ? audio_len : len);
     SDL_memcpy(stream, audio_pos, len); 					// simply copy from one buffer into the other
-
+    ((music*)userdata)->record(stream, len);
     audio_pos += len;
     audio_len -= len;
 
@@ -31,7 +31,7 @@ namespace
   }
 
 music::music() : _sample_rate(8000), _t(0), _samples_per_go(1024), _buffer_width(1), _buffer_is_filled(false),
-_playing(false), _float(false)
+_playing(false), _float(false), out(nullptr)
   {
   _buffer_to_play.resize(_samples_per_go*_buffer_width, 127);
   _buffer_to_fill.resize(_samples_per_go*_buffer_width, 127);
@@ -40,7 +40,7 @@ _playing(false), _float(false)
 
 music::~music()
   {
-  stop();
+  stop();  
   }
 
 void music::fill_buffer(compiler& c)
@@ -111,6 +111,30 @@ void music::play(compiler& c)
     printf("Couldn't open audio: %s\n", SDL_GetError());
     exit(-1);
     }
+
+  out = fopen("session.wav", "wb");
+  if (out)
+    {
+    fwrite("RIFF----WAVEfmt ", 16, 1, out);
+    uint32_t val32 = 16;
+    fwrite(&val32, 4, 1, out);
+    uint16_t val16 = 1;
+    fwrite(&val16, 2, 1, out);
+    val16 = 1;
+    fwrite(&val16, 2, 1, out);
+    val32 = _sample_rate;
+    fwrite(&val32, 4, 1, out);
+    val32 = _samples_per_go;
+    fwrite(&val32, 4, 1, out);
+    val16 = 1;
+    fwrite(&val16, 2, 1, out);
+    val16 = 8;
+    fwrite(&val16, 2, 1, out);
+    data_chunk_pos = ftell(out);
+    fwrite("data----", 8, 1, out);
+
+    }
+
   _start = std::chrono::high_resolution_clock::now();
   SDL_PauseAudio(0);
 
@@ -122,6 +146,18 @@ void music::stop()
   if (_t > audio_len)
     _t -= audio_len;
   SDL_CloseAudio();
+  if (out)
+    {
+    long file_length = ftell(out);
+    fseek(out, data_chunk_pos + 4, SEEK_SET);
+    uint32_t value = file_length - data_chunk_pos + 8;
+    fwrite(&value, 4, 1, out);
+    fseek(out, 4, SEEK_SET);
+    value = file_length - 8;
+    fwrite(&value, 4, 1, out);
+    fclose(out);
+    out = nullptr;
+    }
   }
 
 void music::reset_timer()
@@ -155,4 +191,12 @@ uint64_t music::get_estimated_timer_based_on_clock() const
 std::chrono::high_resolution_clock::time_point music::get_starting_point_clock()
   {
   return _start;
+  }
+
+void music::record(unsigned char* stream, int len)
+  {
+  if (out)
+    {
+    fwrite((const void*)stream, 1, len, out);
+    }
   }
