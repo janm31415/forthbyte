@@ -984,7 +984,7 @@ app_state compile_buffer(app_state state, compiler& c, music& m)
   {
   try
     {
-    bool _float = false;
+    bool _float = true;
     uint64_t sample_rate = 8000;
     //preprocessor
     auto it = state.buffer.content.begin();
@@ -1030,11 +1030,7 @@ app_state compile_buffer(app_state state, compiler& c, music& m)
       m.set_float();
     else
       m.set_byte();
-    uint64_t old_sample_rate = m.get_sample_rate();
-    if (sample_rate != old_sample_rate)
-      {
-      m.set_sample_rate(sample_rate);
-      }
+    m.set_sample_rate(sample_rate);   
     state.message = string_to_line("[Build succeeded]");
     }
   catch (std::logic_error& e)
@@ -1431,7 +1427,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
             else
               {
               state.message = string_to_line("[Play]");
-              m.play(c);
+              m.play();
               }
             state.playing = !state.playing;
             return state;
@@ -1468,8 +1464,6 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
             {
             state.message = string_to_line("[Restart]");
             m.reset_timer();
-            if (state.playing)
-              m.play(c);
             return state;
             }
           }

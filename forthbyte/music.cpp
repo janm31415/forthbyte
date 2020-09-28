@@ -9,20 +9,23 @@
 namespace
   {
 
+//#define USE_MIX
+
   static unsigned char* audio_pos;
   static uint32_t audio_len;
   static uint64_t current_t;
-  static uint32_t last_sample = 0;
-  static uint32_t last_result[2] = { 0,0 };
-  static uint32_t volume = 10;
+  static uint64_t last_sample = 0;
+  static int32_t last_result[2] = { 0,0 };
+  static int32_t volume = 50;
+  static unsigned char mixsrc[4096 * 4]; // * 2 for uint16 and * 2 for channels
 
   void my_audio_callback(void *userdata, unsigned char* stream, int len)
     {
     music* m = (music*)userdata;
-    for (int i = 0; i < len / m->channels(); i += 2)
+    for (uint32_t i = 0; i < len / m->channels(); i += 2)
       {
-      uint32_t sample = (current_t*m->get_sample_rate()) / 44100;
-      uint32_t result[2];
+      uint64_t sample = (current_t*m->get_sample_rate()) / 44100;
+      int32_t result[2];
       if (sample == last_sample)
         {
         result[0] = last_result[0];
@@ -37,14 +40,22 @@ namespace
         last_result[1] = result[1];
         }
 
-      for (int j = 0; j < m->channels(); ++j)
+      for (uint32_t j = 0; j < m->channels(); ++j)
         {
-        uint16_t* store = (uint16_t*)&stream[m->channels() * i + 2*j];
-        *store = result[j];
+#ifdef USE_MIX
+        int16_t* store = (int16_t*)&mixsrc[m->channels() * i + 2 * j];
+#else
+        int16_t* store = (int16_t*)&stream[m->channels() * i + 2*j];
+#endif
+        *store = (int16_t)result[j];
         }
 
       ++current_t;
       }
+#ifdef USE_MIX
+    SDL_memset(stream, 0, len);
+    SDL_MixAudioFormat(stream, mixsrc, AUDIO_S16SYS, len, SDL_MIX_MAXVOLUME / 2);
+#endif
 
     m->record(stream, len);
 
@@ -53,7 +64,7 @@ namespace
   }
 
 music::music(compiler* c) : _sample_rate(8000), _samples_per_go(4096), 
-_playing(false), _float(false), out(nullptr), _channels(2), _comp(c)
+_playing(false), _float(true), out(nullptr), _channels(2), _comp(c)
   {
   _start = std::chrono::high_resolution_clock::now();
   }
@@ -63,28 +74,24 @@ music::~music()
   stop();  
   }
 
-uint32_t music::run(uint64_t t)
+int32_t music::run(uint64_t t)
   {
-  uint32_t result;
+  int32_t result;
   if (_float)
     {
     double d = _comp->run_float(t);
-    d = (d + 1.0)*127.5 * volume;
-    result = (uint32_t)std::floor(d);
-    if (result < 0)
-      result = 0;
-    if (result > 255 * volume)
-      result = 255 * volume;
+    d *= 128.0 * volume;
+    result = (int32_t)std::floor(d);    
     }
   else
     {
-    result = _comp->run_byte(t) * volume;
+    result = (int8_t)_comp->run_byte(t) * volume;
     }
   return result;
   }
 
 
-void music::play(compiler& c)
+void music::play()
   {
   stop();
 
@@ -92,12 +99,11 @@ void music::play(compiler& c)
   SDL_zero(wav_spec);
   wav_spec.callback = my_audio_callback;
   wav_spec.userdata = this;
-  wav_spec.channels = _channels;
+  wav_spec.channels = (uint8_t)_channels;
   wav_spec.format = AUDIO_S16SYS;
   wav_spec.freq = 44100;
   wav_spec.padding = 0;
-  wav_spec.samples = _samples_per_go; 
-
+  wav_spec.samples = _samples_per_go;   
   if (SDL_OpenAudio(&wav_spec, NULL) < 0) {
     printf("Couldn't open audio: %s\n", SDL_GetError());
     exit(-1);
@@ -111,13 +117,13 @@ void music::play(compiler& c)
     fwrite(&val32, 4, 1, out);
     uint16_t val16 = 1; // PCM - integer samples
     fwrite(&val16, 2, 1, out);
-    val16 = _channels; // two channels
+    val16 = (uint16_t)_channels; // two channels
     fwrite(&val16, 2, 1, out);
     val32 = 44100;// _sample_rate; // samples per second (Hz)
     fwrite(&val32, 4, 1, out);
     val32 = 44100*16* _channels /8; // (Sample Rate * BitsPerSample * Channels) / 8
     fwrite(&val32, 4, 1, out);
-    val16 = 2* _channels; // data block size (size of two integer samples, one for each channel)
+    val16 = (uint16_t)(2* _channels); // data block size (size of two integer samples, one for each channel)
     fwrite(&val16, 2, 1, out);
     val16 = 16; // number of bits per sample (use a multiple of 8)
     fwrite(&val16, 2, 1, out);

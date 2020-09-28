@@ -14,7 +14,7 @@ class music
     music(compiler* c);
     ~music();
 
-    void play(compiler& c);
+    void play();
 
     void stop();
 
@@ -42,11 +42,11 @@ class music
 
     uint32_t channels() const { return _channels; }
 
-    uint32_t run(uint64_t t);
+    int32_t run(uint64_t t);
 
   private:
     uint32_t _sample_rate;
-    uint32_t _samples_per_go;
+    uint16_t _samples_per_go;
     uint32_t _channels;
     std::chrono::high_resolution_clock::time_point _start;
 
