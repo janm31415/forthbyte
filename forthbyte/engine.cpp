@@ -84,10 +84,13 @@ void draw_music_info(app_state state, const music& m)
   {
   if (!state.playing)
     return;
+
   attron(A_ITALIC);
   int rows, cols;
   getmaxyx(stdscr, rows, cols);
   move(rows - 3, 0);
+  clrtoeol();
+  
   std::stringstream str;
   str << "Sample rate: " << m.get_sample_rate();
   str << "  ";
@@ -95,7 +98,7 @@ void draw_music_info(app_state state, const music& m)
     str << "ByteBeat   ";
   else
     str << "FloatBeat  ";
-  str << "t: " << m.get_estimated_timer_based_on_clock();
+  str << "t: " << m.get_timer();
   std::string line = str.str();
   line = line.substr(0, cols);
   while (line.length() < cols)
@@ -1030,11 +1033,7 @@ app_state compile_buffer(app_state state, compiler& c, music& m)
     uint64_t old_sample_rate = m.get_sample_rate();
     if (sample_rate != old_sample_rate)
       {
-      if (state.playing)
-        m.stop();
       m.set_sample_rate(sample_rate);
-      if (state.playing)
-        m.play(c);
       }
     state.message = string_to_line("[Build succeeded]");
     }
@@ -1546,13 +1545,13 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
         case SDL_QUIT: return exit(state);
         } // switch (event.type)
       }
-    m.fill_buffer(c);
     draw_music_info(state, m);
+    SDL_UpdateWindowSurface(pdc_window);
     std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(5.0));
     }
   }
 
-engine::engine(int argc, char** argv)
+engine::engine(int argc, char** argv) : m(&c)
   {
   pdc_font_size = 17;
 #ifdef _WIN32
