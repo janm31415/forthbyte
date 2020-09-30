@@ -173,6 +173,8 @@ text to_text(std::wstring wtxt);
 
 std::string to_string(text txt);
 
+std::wstring to_wstring(text txt);
+
 file_buffer find_text(file_buffer fb, text txt);
 
 file_buffer find_text(file_buffer fb, const std::wstring& wtxt);
@@ -219,3 +221,7 @@ This method looks for corresponding tokens, inside the range (minrow, maxrow).
 position find_corresponding_token(file_buffer fb, position tokenpos, int64_t minrow, int64_t maxrow);
 
 std::wstring read_next_word(line::const_iterator it, line::const_iterator it_end);
+
+position get_indentation_at_row(file_buffer fb, int64_t row);
+
+std::string get_row_indentation_pattern(file_buffer fb, int64_t row);

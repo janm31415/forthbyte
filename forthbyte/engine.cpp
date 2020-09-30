@@ -372,9 +372,9 @@ void draw_help_text(app_state state)
   getmaxyx(stdscr, rows, cols);
   if (state.operation == op_editing)
     {
-    static std::string line1("^N New    ^O Open   ^S Save   ^C Copy   ^V Paste  ^Z Undo   ^Y Redo   ^A Sel/all");
-    static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^R Restart^E Export");
-    static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^R Restart^E Export");
+    static std::string line1("^N New    ^O Open   ^S Save   ^W Save as^C Copy   ^V Paste  ^Z Undo   ^Y Redo   ");
+    static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^R Restart^E Export ^A Sel/all");
+    static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^R Restart^E Export ^A Sel/all");
     draw_help_line(line1, rows - 2, cols);
     if (state.playing)
       draw_help_line(line3, rows - 1, cols);
@@ -946,7 +946,9 @@ app_state del(app_state state)
 
 app_state ret_editor(app_state state)
   {
-  return text_input(state, "\n");
+  std::string indentation("\n");
+  indentation.append(get_row_indentation_pattern(state.buffer, state.buffer.pos.row));
+  return text_input(state, indentation.c_str());
   }
 
 line string_to_line(const std::string& txt)
@@ -1025,7 +1027,7 @@ app_state open_file(app_state state, compiler& c, music& m)
       filename.push_back('"');
       filename.insert(filename.begin(), '"');
       }
-    std::string error_message = "File " + filename + " not found";
+    std::string error_message = "[File " + filename + " not found]";
     state.message = string_to_line(error_message);
     }
   else
@@ -1036,12 +1038,32 @@ app_state open_file(app_state state, compiler& c, music& m)
       filename.push_back('"');
       filename.insert(filename.begin(), '"');
       }
-    std::string message = "Opened file " + filename;
+    std::string message = "[Opened file " + filename + "]";
     state.message = string_to_line(message);
     }
   state.buffer = set_multiline_comments(state.buffer);
   state.buffer = init_lexer_status(state.buffer);
   state = compile_buffer(state, c, m);
+  return state;
+  }
+
+
+app_state put(app_state state)
+  {
+  std::string filename = state.buffer.name;
+  bool success = false;
+  state.buffer = save_to_file(success, state.buffer, filename);
+  if (success)
+    {
+    state.buffer.name = filename;
+    std::string message = "[Saved file " + filename + "]";
+    state.message = string_to_line(message);
+    }
+  else
+    {
+    std::string error_message = "[Error saving file " + filename + "]";
+    state.message = string_to_line(error_message);
+    }
   return state;
   }
 
@@ -1062,12 +1084,12 @@ app_state save_file(app_state state)
   if (success)
     {
     state.buffer.name = filename;
-    std::string message = "Saved file " + filename;
+    std::string message = "[Saved file " + filename + "]";
     state.message = string_to_line(message);
     }
   else
     {
-    std::string error_message = "Error saving file " + filename;
+    std::string error_message = "[Error saving file " + filename + "]";
     state.message = string_to_line(error_message);
     }
   return state;
@@ -1333,7 +1355,14 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           case SDLK_TAB: return tab(state);
           case SDLK_RETURN: return ret(state, c, m);
           case SDLK_BACKSPACE: return backspace(state);
-          case SDLK_DELETE: return del(state);
+          case SDLK_DELETE: 
+          {
+          if (keyb.is_down(SDLK_LSHIFT) || keyb.is_down(SDLK_RSHIFT)) // copy
+            {
+            state = copy_to_snarf_buffer(state);
+            }
+          return del(state);
+          }
           case SDLK_LSHIFT:
           case SDLK_RSHIFT:
           {
@@ -1437,8 +1466,15 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
-            state.operation = op_save;
-            return make_save_buffer(state);
+            if (state.buffer.name.empty())
+              {
+              state.operation = op_save;
+              return make_save_buffer(state);
+              }
+            else
+              {
+              return put(state);
+              }
             }
           }
           case SDLK_v:
@@ -1446,6 +1482,14 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             return paste_from_snarf_buffer(state);
+            }
+          }
+          case SDLK_w:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            state.operation = op_save;
+            return make_save_buffer(state);
             }
           }
           case SDLK_x:

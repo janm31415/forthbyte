@@ -258,7 +258,7 @@ bool in_selection(file_buffer fb, position current, position cursor, position bu
   if (has_selection)
     {
     if (!rectangular)
-      return ((start_selection <= current && current <= cursor) || (cursor <= current && current <= start_selection));
+      return ((start_selection <= current && current <= cursor) || (cursor <= current && current < start_selection));
 
     int64_t minx, maxx, minrow, maxrow;
     get_rectangular_selection(minrow, maxrow, minx, maxx, fb, *start_selection, buffer_pos, s);
@@ -432,6 +432,8 @@ namespace
 
   file_buffer insert_rectangular(file_buffer fb, text txt, const env_settings& s, bool save_undo)
     {
+    return insert_rectangular(fb, to_wstring(txt), s, save_undo);
+    /*
     if (txt.empty())
       return fb;
 
@@ -494,6 +496,7 @@ namespace
       }
     fb = update_lexer_status(fb, minrow, maxrow);
     return fb;
+    */
     }
   }
 
@@ -583,56 +586,7 @@ file_buffer insert(file_buffer fb, const std::string& txt, const env_settings& s
 
 file_buffer insert(file_buffer fb, text txt, const env_settings& s, bool save_undo)
   {
-  if (save_undo)
-    fb = push_undo(fb);
-
-  if (has_nontrivial_selection(fb, s))
-    fb = erase(fb, s, false);
-
-  if (has_rectangular_selection(fb))
-    return insert_rectangular(fb, txt, s, false);
-
-  fb.start_selection = std::nullopt;
-
-  fb.modification_mask |= 1;
-
-  if (fb.content.empty())
-    {
-    fb.content = txt;
-    return fb;
-    }
-
-  if (txt.empty())
-    return fb;
-
-  auto pos = get_actual_position(fb);
-
-  auto ln1 = fb.content[pos.row].take(pos.col);
-  auto ln2 = fb.content[pos.row].drop(pos.col);
-
-  if (!txt.back().empty() && txt.back().back() == L'\n')
-    {
-    txt = txt.push_back(line());
-    }
-
-  if (txt.size() == 1)
-    {
-    auto new_line = ln1 + txt[0] + ln2;
-    fb.content = fb.content.set(pos.row, new_line);
-    fb.pos.col = ln1.size() + txt[0].size();
-    }
-  else
-    {
-    fb.pos.col = txt.back().size();
-    fb.pos.row += txt.size() - 1;
-    ln1 = ln1 + txt[0];
-    ln2 = txt.back() + ln2;
-    txt = txt.set(0, ln1);
-    txt = txt.set(txt.size() - 1, ln2);
-    fb.content = fb.content.take(pos.row) + txt + fb.content.drop(pos.row + 1);
-    }
-  fb.xpos = get_x_position(fb, s);
-  return fb;
+  return insert(fb, to_wstring(txt), s, save_undo);
   }
 
 file_buffer erase(file_buffer fb, const env_settings& s, bool save_undo)
@@ -670,10 +624,14 @@ file_buffer erase(file_buffer fb, const env_settings& s, bool save_undo)
   else
     {
 
-    auto p1 = get_actual_position(fb);
-    auto p2 = *fb.start_selection;
+    auto p2 = get_actual_position(fb);
+    auto p1 = *fb.start_selection;
     if (p2 < p1)
+      {
       std::swap(p1, p2);
+      if (!fb.rectangular_selection)
+        p2 = get_previous_position(fb, p2);
+      }
     if (p1.row == p2.row)
       {
       fb.start_selection = std::nullopt;
@@ -782,9 +740,12 @@ file_buffer erase_right(file_buffer fb, const env_settings& s, bool save_undo)
       }
     else if (fb.content[pos.row].empty())
       {
-      fb.content = fb.content.erase(pos.row);
-      fb.lex = fb.lex.erase(pos.row);
-      fb = update_lexer_status(fb, pos.row);
+      if (pos.row != (int64_t)fb.content.size() - 1) // not last line
+        {
+        fb.content = fb.content.erase(pos.row);
+        fb.lex = fb.lex.erase(pos.row);
+        fb = update_lexer_status(fb, pos.row);
+        }
       }
     else if (pos.row < (int64_t)fb.content.size() - 1)
       {
@@ -827,16 +788,20 @@ file_buffer erase_right(file_buffer fb, const env_settings& s, bool save_undo)
 
 text get_selection(file_buffer fb, const env_settings& s)
   {
-  auto p1 = get_actual_position(fb);
+  auto p2 = get_actual_position(fb);
   if (!has_selection(fb))
     {
-    if (fb.content.empty() || fb.content[p1.row].empty())
+    if (fb.content.empty() || fb.content[p2.row].empty())
       return text();
-    return text().push_back(line().push_back(fb.content[p1.row][p1.col]));
+    return text().push_back(line().push_back(fb.content[p2.row][p2.col]));
     }
-  auto p2 = *fb.start_selection;
+  auto p1 = *fb.start_selection;
   if (p2 < p1)
+    {
     std::swap(p1, p2);
+    if (!fb.rectangular_selection)
+      p2 = get_previous_position(fb, p2);
+    }
 
   if (p1.row == p2.row)
     {
@@ -1018,8 +983,9 @@ file_buffer move_page_down(file_buffer fb, int64_t rows, const env_settings& s)
 
 file_buffer move_home(file_buffer fb, const env_settings& s)
   {
-  fb.pos.col = 0;
-  fb.xpos = 0;
+  auto indented_pos = get_indentation_at_row(fb, fb.pos.row);
+  fb.pos.col = (fb.pos.col <= indented_pos.col) ? 0 : indented_pos.col;
+  fb.xpos = fb.pos.col == 0 ? 0 : get_x_position(fb, s);
   return fb;
   }
 
@@ -1028,13 +994,19 @@ file_buffer move_end(file_buffer fb, const env_settings& s)
   if (fb.content.empty())
     return fb;
 
+  bool selecting = fb.start_selection != std::nullopt;
+
   fb.pos.col = (int64_t)fb.content[fb.pos.row].size() - 1;
+  if (selecting)
+    --fb.pos.col; // don't take the last \n
   if (fb.pos.col < 0)
     fb.pos.col = 0;
 
   if ((fb.pos.row + 1) == fb.content.size()) // last line
     {
-    if (fb.content.back().back() != L'\n')
+    if (fb.content.back().empty())
+      fb.pos.col = 0;
+    else if (fb.content.back().back() != L'\n')
       ++fb.pos.col;
     }
   fb.xpos = get_x_position(fb, s);
@@ -1051,6 +1023,22 @@ std::string to_string(text txt)
     auto it_end = ln.end();
     str.reserve(std::distance(it, it_end));
     utf8::utf16to8(it, it_end, std::back_inserter(str));
+    out.append(str);
+    }
+  return out;
+  }
+
+std::wstring to_wstring(text txt)
+  {
+  std::wstring out;
+  for (auto ln : txt)
+    {
+    std::wstring str;
+    auto it = ln.begin();
+    auto it_end = ln.end();
+    str.reserve(std::distance(it, it_end));
+    for (; it != it_end; ++it)
+      str.push_back(*it);
     out.append(str);
     }
   return out;
@@ -1562,4 +1550,28 @@ position find_corresponding_token(file_buffer fb, position tokenpos, int64_t min
       }
     }
   return position(-1, -1);
+  }
+
+position get_indentation_at_row(file_buffer fb, int64_t row)
+  {
+  position out(row, 0);
+  auto ln = fb.content[row];
+  auto maxcol = ln.size();
+  while (out.col < maxcol && (ln[out.col] == L' ' || ln[out.col] == L'\t'))
+    ++out.col;
+  return out;
+  }
+
+std::string get_row_indentation_pattern(file_buffer fb, int64_t row)
+  {
+  std::string out;
+  auto ln = fb.content[row];
+  auto maxcol = ln.size();
+  int64_t col = 0;
+  while (col < maxcol && (ln[col] == L' ' || ln[col] == L'\t'))
+    {
+    out.push_back((char)ln[col]);
+    ++col;
+    }
+  return out;
   }
