@@ -21,7 +21,7 @@ namespace
 
 void test_tokenize()
   {
-  auto words = tokenize("double 1 3.4 : ; ( bla bla \n\t    bla\n) tureluut 1.e-8 4509.3498.234234 \\ this is comment");
+  auto words = tokenize("double 1 3.4 : ; /* bla bla \n\t    bla\n*/ tureluut 1.e-8 4509.3498.234234 // this is comment");
 
   TEST_EQ(8, (int)words.size());
 
@@ -124,6 +124,16 @@ void test_eval_sub()
   TEST_EQ(-1, res);
   TEST_EQ(0, interpr.stack_pointer);
   }
+  
+void test_store_fetch()
+  {
+  auto words = tokenize("3.14 0 ! 1 2 3 4 5 - 1 + @");
+  interpreter<float> interpr;
+  auto prog = interpr.parse(words);
+  interpr.eval(prog);
+  int res = interpr.pop();
+  TEST_EQ(3.14f, res);
+  }
 
 void run_all_forth_tests()
   {
@@ -135,4 +145,5 @@ void run_all_forth_tests()
   test_parse_variable();
   test_eval_add();
   test_eval_sub();
+  test_store_fetch();
   }

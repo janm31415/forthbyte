@@ -425,11 +425,11 @@ namespace
     {
     keyword_data kd;
 
-    std::string in = "t + - * / & | ^ >> << not sin cos % < > <= >= = <> dup pick drop 2dup over nip tuck swap rot -rot min max pow atan2 negate tan log exp sqrt floor ceil abs";
+    std::string in = "! @ + - * / & | ^ >> << not sin cos % < > <= >= = <> dup pick drop 2dup over nip tuck swap rot -rot min max pow atan2 negate tan log exp sqrt floor ceil abs";
     kd.keywords_1 = break_string(in);
     std::sort(kd.keywords_1.begin(), kd.keywords_1.end());
 
-    in = ": ; #samplerate #byte #float";
+    in = "t sr : ; #samplerate #byte #float";
     kd.keywords_2 = break_string(in);
     std::sort(kd.keywords_2.begin(), kd.keywords_2.end());
     return kd;

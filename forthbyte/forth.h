@@ -130,6 +130,8 @@ namespace forth
       void primitive_floor();
       void primitive_ceil();
       void primitive_abs();
+      void primitive_fetch();
+      void primitive_store();
 
       void eval(const Program& prog);
 
@@ -143,6 +145,7 @@ namespace forth
       int stack_pointer;
       std::array<T, N> globals;
       int variable_index;
+      std::array<T, N> memory_stack;
     };
 
   namespace details
@@ -487,6 +490,8 @@ namespace forth
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("floor", &interpreter::primitive_floor));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("ceil", &interpreter::primitive_ceil));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("abs", &interpreter::primitive_abs));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("@", &interpreter::primitive_fetch));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("!", &interpreter::primitive_store));
     }
 
   template <class T, int N>
@@ -1105,4 +1110,27 @@ namespace forth
     push((T)std::abs(a));
     }
 
+  template <class T, int N>
+  void interpreter<T, N>::primitive_fetch()
+    {
+    /*
+    (addr -- value_from_addr)
+     */
+    T a = pop();
+    int index = ((int)a) % N;
+    push(memory_stack[index]);
+    }
+    
+  template <class T, int N>
+  void interpreter<T, N>::primitive_store()
+    {
+    /*
+    (x addr -- )
+    */
+    
+    T b = pop();
+    T a = pop();
+    int index = ((int)b) % N;
+    memory_stack[index] = a;
+    }
   } // namespace forth
