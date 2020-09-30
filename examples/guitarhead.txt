@@ -1,7 +1,7 @@
 /*
 Guitarhead, from Glitch Machine.
 */
-
+#byte
 t 5 * 3 >> t &
 t 4096 % 1024 < &
 t 12 >> 19 & 1 + 25 * pick 208 % 3 *

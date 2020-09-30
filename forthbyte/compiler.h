@@ -1,6 +1,7 @@
 #pragma once
 
 #include "forth.h"
+#include "preprocessor.h"
 
 #include <string>
 #include <stdint.h>
@@ -11,8 +12,8 @@ class compiler
     compiler();
     ~compiler();
 
-    void compile_byte(const std::string& script);
-    void compile_float(const std::string& script);
+    void compile_byte(const std::string& script, const preprocess_settings& sett);
+    void compile_float(const std::string& script, const preprocess_settings& sett);
 
     unsigned char run_byte(int64_t t);
     double run_float(int64_t t);

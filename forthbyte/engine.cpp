@@ -3,6 +3,7 @@
 
 #include "colors.h"
 #include "keyboard.h"
+#include "preprocessor.h"
 
 #include <jtk/file_utils.h>
 
@@ -984,53 +985,18 @@ app_state compile_buffer(app_state state, compiler& c, music& m)
   {
   try
     {
-    bool _float = true;
-    uint64_t sample_rate = 8000;
-    //preprocessor
-    auto it = state.buffer.content.begin();
-    auto it_end = state.buffer.content.end();
-    for (; it != it_end; ++it)
+    auto sett = preprocess(state.buffer.content);
+    m.set_sample_rate(sett._sample_rate);
+    if (sett._float)
       {
-      auto ln = *it;
-      auto line_it = ln.begin();
-      auto line_it_end = ln.end();
-      while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
-        ++line_it;
-      std::wstring first_word = read_next_word(line_it, line_it_end);
-      if (first_word == L"#samplerate")
-        {
-        line_it += first_word.length();
-        while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
-          ++line_it;
-        std::wstring second_word = read_next_word(line_it, line_it_end);
-        std::wstringstream str;
-        str << second_word;        
-        str >> sample_rate;        
-        }
-      else if (first_word == L"#byte")
-        {
-        _float = false;
-        }
-      else if (first_word == L"#float")
-        {
-        _float = true;
-        }
-      else if (!first_word.empty() && first_word[0] == L'#')
-        {
-        std::stringstream str;
-        str << "Unknown preprocessor directive: " << jtk::convert_wstring_to_string(first_word);
-        throw std::logic_error(str.str());
-        }
-      }
-    if (_float)
-      c.compile_float(buffer_to_string(state.buffer));
-    else
-      c.compile_byte(buffer_to_string(state.buffer));
-    if (_float)
+      c.compile_float(buffer_to_string(state.buffer), sett);
       m.set_float();
+      }
     else
+      {
+      c.compile_byte(buffer_to_string(state.buffer), sett);
       m.set_byte();
-    m.set_sample_rate(sample_rate);   
+      }
     state.message = string_to_line("[Build succeeded]");
     }
   catch (std::logic_error& e)

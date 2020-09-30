@@ -32,6 +32,7 @@ fbicon.h
 forth.h
 keyboard.h
 music.h
+preprocessor.h
 utils.h
     )
 	
@@ -45,6 +46,7 @@ fbicon.cpp
 keyboard.cpp
 main.cpp
 music.cpp
+preprocessor.cpp
 utils.cpp
 )
 
