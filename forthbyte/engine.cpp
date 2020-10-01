@@ -377,9 +377,9 @@ void draw_help_text(app_state state)
     static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^R Restart^E Export ^A Sel/all");
     draw_help_line(line1, rows - 2, cols);
     if (state.playing)
-      draw_help_line(line3, rows - 1, cols);
+      draw_help_line(line3, rows - 1, cols-1);
     else
-      draw_help_line(line2, rows - 1, cols);
+      draw_help_line(line2, rows - 1, cols-1);
     }
   if (state.operation == op_open)
     {
