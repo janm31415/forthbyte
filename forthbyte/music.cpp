@@ -33,8 +33,8 @@ namespace
         }
       else
         {
-        result[0] = m->run(sample);
-        result[1] = result[0];
+        result[0] = m->run_left(sample);
+        result[1] = m->run_right(sample);
         last_sample = sample;
         last_result[0] = result[0];
         last_result[1] = result[1];
@@ -74,22 +74,34 @@ music::~music()
   stop();  
   }
 
-int32_t music::run(uint64_t t)
+int32_t music::run(uint64_t t, int c)
   {
   int32_t result;
   if (_float)
     {
-    double d = _comp->run_float(t);
+    
+    double d = _comp->run_float(t, c);
     d *= 128.0 * volume;
     result = (int32_t)std::floor(d);    
     }
   else
     {
-    result = (int8_t)_comp->run_byte(t) * volume;
+    result = ((int32_t)_comp->run_byte(t, c) - 128) * volume;
     }
   return result;
   }
 
+int32_t music::run_left(uint64_t t)
+  {
+  _left_value = run(t, 0);
+  return _left_value;
+  }
+
+int32_t music::run_right(uint64_t t)
+  {
+  bool stereo = _float ? _comp->stereo_float() : _comp->stereo_byte();
+  return stereo ? run(t, 1) : _left_value;
+  }
 
 void music::play()
   {

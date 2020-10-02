@@ -429,7 +429,7 @@ namespace
     kd.keywords_1 = break_string(in);
     std::sort(kd.keywords_1.begin(), kd.keywords_1.end());
 
-    in = "t sr : ; #samplerate #byte #float";
+    in = "t sr : ; #samplerate #byte #float #initmemory";
     kd.keywords_2 = break_string(in);
     std::sort(kd.keywords_2.begin(), kd.keywords_2.end());
     return kd;
@@ -992,13 +992,16 @@ app_state compile_buffer(app_state state, compiler& c, music& m)
     if (sett._float)
       {
       c.compile_float(buffer_to_string(state.buffer), sett);
+      c.init_memory_float(sett.init_memory);
       m.set_float();
       }
     else
       {
       c.compile_byte(buffer_to_string(state.buffer), sett);
+      c.init_memory_byte(sett.init_memory);
       m.set_byte();
       }
+    
     state.message = string_to_line("[Build succeeded]");
     }
   catch (std::logic_error& e)

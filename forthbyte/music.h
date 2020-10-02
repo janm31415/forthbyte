@@ -42,7 +42,9 @@ class music
 
     uint32_t channels() const { return _channels; }
 
-    int32_t run(uint64_t t);
+    int32_t run(uint64_t t, int c);
+    int32_t run_left(uint64_t t);
+    int32_t run_right(uint64_t t);
 
   private:
     uint32_t _sample_rate;
@@ -55,4 +57,5 @@ class music
     FILE* out;
     long data_chunk_pos;
     compiler* _comp;
+    int32_t _left_value;
   };

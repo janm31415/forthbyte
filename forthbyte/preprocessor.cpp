@@ -38,6 +38,21 @@ preprocess_settings preprocess(text code)
       {
       _float = true;
       }
+    else if (first_word == L"#initmemory")
+      {
+      std::wstring current_word = first_word;
+      while (!current_word.empty())
+        {
+        line_it += current_word.length();
+        while (line_it != line_it_end && (*line_it == L' ' || *line_it == L'\t'))
+          ++line_it;
+        current_word = read_next_word(line_it, line_it_end);
+        if (!current_word.empty())
+          {
+          out.init_memory.push_back(jtk::convert_wstring_to_string(current_word));
+          }
+        }
+      }
     else if (!first_word.empty() && first_word[0] == L'#')
       {
       std::stringstream str;
