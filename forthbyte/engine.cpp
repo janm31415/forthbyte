@@ -429,7 +429,7 @@ namespace
     kd.keywords_1 = break_string(in);
     std::sort(kd.keywords_1.begin(), kd.keywords_1.end());
 
-    in = "t sr : ; #samplerate #byte #float #initmemory";
+    in = "t sr c : ; #samplerate #byte #float #initmemory";
     kd.keywords_2 = break_string(in);
     std::sort(kd.keywords_2.begin(), kd.keywords_2.end());
     return kd;
