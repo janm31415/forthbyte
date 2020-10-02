@@ -1565,6 +1565,8 @@ position get_indentation_at_row(file_buffer fb, int64_t row)
 std::string get_row_indentation_pattern(file_buffer fb, int64_t row)
   {
   std::string out;
+  if (row >= fb.content.size())
+    return out;
   auto ln = fb.content[row];
   auto maxcol = ln.size();
   int64_t col = 0;
