@@ -16,7 +16,7 @@ namespace
   static uint64_t current_t;
   static uint64_t last_sample = 0;
   static int32_t last_result[2] = { 0,0 };
-  static int32_t volume = 50;
+  static int32_t volume = 64;
   static unsigned char mixsrc[4096 * 4]; // * 2 for uint16 and * 2 for channels
 
   void my_audio_callback(void *userdata, unsigned char* stream, int len)
@@ -79,10 +79,8 @@ int32_t music::run(uint64_t t, int c)
   int32_t result;
   if (_float)
     {
-    
-    double d = _comp->run_float(t, c);
-    d *= 128.0 * volume;
-    result = (int32_t)std::floor(d);    
+    //result = (int32_t)std::floor(_comp->run_float(t, c)*128.0) * volume;
+    result = (int32_t)std::floor(_comp->run_float(t, c)*128.0*volume);
     }
   else
     {
