@@ -817,7 +817,7 @@ app_state move_home_operation(app_state state)
   if (state.operation == op_help)
     return state;
   state = cancel_selection(state);
-  state.operation_buffer.pos.col = 0;
+  state.operation_buffer = move_home(state.operation_buffer, state.senv);
   return state;
   }
 
@@ -844,8 +844,7 @@ app_state move_end_operation(app_state state)
   if (state.operation_buffer.content.empty())
     return state;
 
-  state.operation_buffer.pos.col = (int64_t)state.operation_buffer.content[0].size();
-  state.operation_buffer.pos.row = 0;
+  state.operation_buffer = move_end(state.operation_buffer, state.senv);
   return state;
   }
 

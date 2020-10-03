@@ -1170,9 +1170,9 @@ file_buffer find_text(file_buffer fb, text txt)
         first_encounter = pos;
       text_pos = get_next_position(txt, text_pos);
       if (text_pos == lasttext)
-        {
-        fb.pos = first_encounter;
-        fb.start_selection = pos;
+        {        
+        fb.start_selection = first_encounter;
+        fb.pos = pos;
         return fb;
         }
       current_text_char = txt[text_pos.row][text_pos.col];
