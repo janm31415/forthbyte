@@ -132,6 +132,8 @@ namespace forth
       void primitive_abs();
       void primitive_fetch();
       void primitive_store();
+      void primitive_return_stack_push();
+      void primitive_return_stack_pop();
 
       void eval(const Program& prog);
 
@@ -146,6 +148,8 @@ namespace forth
       std::array<T, N> globals;
       int variable_index;
       std::array<T, N> memory_stack;
+      std::array<T, N> return_stack;
+      int return_stack_pointer;
     };
 
   namespace details
@@ -447,7 +451,7 @@ namespace forth
     }
 
   template <class T, int N>
-  interpreter<T, N>::interpreter() : stack_pointer(0), variable_index(0)
+  interpreter<T, N>::interpreter() : stack_pointer(0), variable_index(0), return_stack_pointer(0)
     {
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("+", &interpreter::primitive_add));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("-", &interpreter::primitive_sub));
@@ -492,6 +496,8 @@ namespace forth
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("abs", &interpreter::primitive_abs));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("@", &interpreter::primitive_fetch));
     primitives.insert(std::pair<std::string, primitive_fun_ptr>("!", &interpreter::primitive_store));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>(">r", &interpreter::primitive_return_stack_push));
+    primitives.insert(std::pair<std::string, primitive_fun_ptr>("r>", &interpreter::primitive_return_stack_pop));
     }
 
   template <class T, int N>
@@ -1132,5 +1138,24 @@ namespace forth
     T a = pop();
     int index = ((int)b) % N;
     memory_stack[index] = a;
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_return_stack_push()
+    {
+    T a = pop();
+    return_stack[return_stack_pointer] = a;
+    ++return_stack_pointer;
+    if (return_stack_pointer >= N)
+      return_stack_pointer = 0;
+    }
+
+  template <class T, int N>
+  void interpreter<T, N>::primitive_return_stack_pop()
+    {
+    --return_stack_pointer;
+    if (return_stack_pointer < 0)
+      return_stack_pointer = N - 1;
+    push(return_stack[return_stack_pointer]);
     }
   } // namespace forth

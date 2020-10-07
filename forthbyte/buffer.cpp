@@ -20,7 +20,7 @@ file_buffer make_empty_buffer()
 
 namespace
   {
-  bool remove_quotes(std::string& cmd)
+  inline bool local_remove_quotes(std::string& cmd)
     {
     bool has_quotes = false;
     while (cmd.size() >= 2 && cmd.front() == '"' && cmd.back() == '"')
@@ -36,7 +36,7 @@ namespace
 file_buffer read_from_file(std::string filename)
   {
   using namespace jtk;
-  remove_quotes(filename);
+  local_remove_quotes(filename);
   file_buffer fb = make_empty_buffer();
   fb.name = filename;
   if (file_exists(filename))
@@ -1170,7 +1170,7 @@ file_buffer find_text(file_buffer fb, text txt)
         first_encounter = pos;
       text_pos = get_next_position(txt, text_pos);
       if (text_pos == lasttext)
-        {        
+        {
         fb.start_selection = first_encounter;
         fb.pos = pos;
         return fb;
@@ -1562,15 +1562,24 @@ position get_indentation_at_row(file_buffer fb, int64_t row)
   return out;
   }
 
-std::string get_row_indentation_pattern(file_buffer fb, int64_t row)
+std::string get_row_indentation_pattern(file_buffer fb, position pos)
   {
   std::string out;
-  if (row >= fb.content.size())
+  if (pos.row >= fb.content.size())
     return out;
-  auto ln = fb.content[row];
-  auto maxcol = ln.size();
+  auto ln = fb.content[pos.row];
+  int64_t lastcol = (int64_t)ln.size() - 1;
+  if ((pos.row + 1) == fb.content.size()) // last line
+    {
+    if (fb.content.back().empty())
+      lastcol = 0;
+    else if (fb.content.back().back() != L'\n')
+      ++lastcol;
+    }
+  if (pos.col != lastcol)
+    return out;
   int64_t col = 0;
-  while (col < maxcol && (ln[col] == L' ' || ln[col] == L'\t'))
+  while (col < ln.size() && (ln[col] == L' ' || ln[col] == L'\t'))
     {
     out.push_back((char)ln[col]);
     ++col;

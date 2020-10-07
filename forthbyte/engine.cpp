@@ -946,7 +946,7 @@ app_state del(app_state state)
 app_state ret_editor(app_state state)
   {
   std::string indentation("\n");
-  indentation.append(get_row_indentation_pattern(state.buffer, state.buffer.pos.row));
+  indentation.append(get_row_indentation_pattern(state.buffer, state.buffer.pos));
   return text_input(state, indentation.c_str());
   }
 

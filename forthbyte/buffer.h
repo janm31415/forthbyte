@@ -224,4 +224,4 @@ std::wstring read_next_word(line::const_iterator it, line::const_iterator it_end
 
 position get_indentation_at_row(file_buffer fb, int64_t row);
 
-std::string get_row_indentation_pattern(file_buffer fb, int64_t row);
+std::string get_row_indentation_pattern(file_buffer fb, position pos);
