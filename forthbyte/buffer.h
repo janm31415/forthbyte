@@ -65,9 +65,10 @@ struct snapshot
 
 struct syntax_settings
   {
-  syntax_settings() : uses_quotes_for_chars(false) {}
+  syntax_settings() : uses_quotes_for_chars(false), should_highlight(false) {}
   std::string multiline_begin, multiline_end, single_line, multistring_begin, multistring_end;
   bool uses_quotes_for_chars;
+  bool should_highlight;
   };
 
 struct file_buffer
@@ -76,10 +77,10 @@ struct file_buffer
   lexer_status lex;
   immutable::vector<snapshot, false> history;
   syntax_settings syntax;
-  std::string name;
+  std::string name;  
   position pos;
   int64_t xpos;
-  std::optional<position> start_selection;
+  std::optional<position> start_selection;  
   uint64_t undo_redo_index;
   uint8_t modification_mask;
   bool rectangular_selection;

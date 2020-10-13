@@ -978,6 +978,7 @@ file_buffer set_multiline_comments(file_buffer fb)
   fb.syntax.multiline_begin = "/*";
   fb.syntax.multiline_end = "*/";
   fb.syntax.single_line = "//";
+  fb.syntax.should_highlight = true;
   return fb;
   }
 
