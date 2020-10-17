@@ -87,6 +87,8 @@ void draw_music_info(app_state state, const music& m)
   {
   if (!state.playing)
     return;
+  if (state.paused)
+    return;
 
   attron(A_ITALIC);
   int rows, cols;
@@ -379,7 +381,7 @@ void draw_help_text(app_state state)
     static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^K Stop   ^R Restart^E Export ^A Sel/all");
     static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^K Stop   ^R Restart^E Export ^A Sel/all");
     draw_help_line(line1, rows - 2, cols);
-    if (state.playing)
+    if (state.playing && !state.paused)
       draw_help_line(line3, rows - 1, cols-1);
     else
       draw_help_line(line2, rows - 1, cols-1);
@@ -1503,7 +1505,9 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
             {
             state.message = string_to_line("[Stop]");
             state.playing = false;
+            state.paused = false;
             m.stop();
+            m.reset_timer();
             return state;
             }
           }
@@ -1518,12 +1522,14 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
                 state.message = string_to_line("[Pause]");
               else
                 state.message = string_to_line("[Play]");
+              state.paused = m.is_paused();
               }
             else
               {
               m.play();
               state.message = string_to_line("[Play]");
               state.playing = true;
+              state.paused = false;
               }
             return state;
             }
@@ -1697,6 +1703,7 @@ engine::engine(int argc, char** argv) : m(&c)
   state.scroll_row = 0;
   state.operation_scroll_row = 0;
   state.playing = false;
+  state.paused = false;
   state.senv.show_all_characters = false;
   state.senv.tab_space = 8;
   state = compile_buffer(state, c, m);

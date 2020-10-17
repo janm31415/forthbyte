@@ -28,7 +28,7 @@ struct app_state
   e_operation operation;  
   std::vector<e_operation> operation_stack;
   env_settings senv;
-  bool playing;
+  bool playing, paused;
   std::string export_location;
   };
 
