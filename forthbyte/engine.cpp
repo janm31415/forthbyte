@@ -4,8 +4,10 @@
 #include "colors.h"
 #include "keyboard.h"
 #include "preprocessor.h"
+#include "utils.h"
 
 #include <jtk/file_utils.h>
+#include <jtk/pipe.h>
 
 #include <SDL.h>
 #include <SDL_syswm.h>
@@ -1252,6 +1254,21 @@ app_state export_location(app_state state)
   state.operation_buffer = insert(state.operation_buffer, state.export_location, state.senv, false);
   return state;
   }
+  
+char** alloc_arguments(const std::string& path, const std::vector<std::string>& parameters)
+  {
+  char** argv = new char*[parameters.size() + 2];
+  argv[0] = const_cast<char*>(path.c_str());
+  for (int j = 0; j < parameters.size(); ++j)
+    argv[j + 1] = const_cast<char*>(parameters[j].c_str());
+  argv[parameters.size() + 1] = nullptr;
+  return argv;
+  }
+
+void free_arguments(char** argv)
+  {
+  delete[] argv;
+  }
 
 app_state copy_to_snarf_buffer(app_state state)
   {
@@ -1261,16 +1278,53 @@ app_state copy_to_snarf_buffer(app_state state)
   else
     state.snarf_buffer = get_selection(state.operation_buffer, state.senv);
 #ifdef _WIN32
-  std::wstring txt;
-  for (const auto& ln : state.snarf_buffer)
-    {
-    for (const auto& ch : ln)
-      txt.push_back(ch);
-    }
+  std::wstring txt = to_wstring(state.snarf_buffer);
   copy_to_windows_clipboard(jtk::convert_wstring_to_string(txt));
+#else
+  std::string txt = to_string(state.snarf_buffer);
+  int pipefd[3];
+#if defined(__APPLE__)
+  std::string pbcopy = get_file_path("pbcopy");
+#else
+  std::string pbcopy = get_file_path("xclip");
+#endif
+  char** argv = alloc_arguments(pbcopy, std::vector<std::string>());
+  int err = jtk::create_pipe(pbcopy.c_str(), argv, nullptr, pipefd);
+  free_arguments(argv);
+  if (err != 0)
+    {
+    std::string error_message = "Could not create child process";
+    state.message = string_to_line(error_message);
+    return state;
+    }
+  jtk::send_to_pipe(pipefd, txt.c_str());
+  jtk::close_pipe(pipefd);
 #endif
   return state;
   }
+  
+#ifndef _WIN32
+std::string pbpaste()
+  {
+#if defined(__APPLE__)
+  FILE* pipe = popen("pbpaste", "r");
+#else
+  FILE* pipe = popen("xclip -o", "r");
+#endif
+  if (!pipe) return "ERROR";
+  char buffer[128];
+  std::string result = "";
+  while (!feof(pipe))
+    {
+    if (fgets(buffer, 128, pipe) != NULL)
+      {
+      result += buffer;
+      }
+    }
+  pclose(pipe);
+  return result;
+  }
+#endif
 
 app_state paste_from_snarf_buffer(app_state state)
   {
@@ -1282,10 +1336,11 @@ app_state paste_from_snarf_buffer(app_state state)
   else
     state.operation_buffer = insert(state.operation_buffer, txt, state.senv);
 #else
+  std::string txt = pbpaste();
   if (state.operation == op_editing)
-    state.buffer = insert(state.buffer, state.snarf_buffer, state.senv);
+    state.buffer = insert(state.buffer, txt, state.senv);
   else
-    state.operation_buffer = insert(state.operation_buffer, state.snarf_buffer, state.senv);
+    state.operation_buffer = insert(state.operation_buffer, txt, state.senv);
 #endif
   return check_scroll_position(state);
   }

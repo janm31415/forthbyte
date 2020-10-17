@@ -142,10 +142,120 @@ namespace
     vec[255] = 0x00A0;
     return vec;
     }
+
+  std::vector<std::wstring> split_wstring_by_wchar(std::wstring str, wchar_t separator)
+    {
+    std::vector<std::wstring> out;
+    while (!str.empty())
+      {
+      auto it = str.find_first_of(separator);
+      if (it == std::wstring::npos)
+        {
+        out.push_back(str);
+        str.clear();
+        }
+      else
+        {
+        out.push_back(str.substr(0, it));
+        str.erase(0, it + 1);
+        }
+      }
+    for (auto& p : out)
+      {
+      std::replace(p.begin(), p.end(), L'\\', L'/');
+      if (p.back() != L'/')
+        p.push_back(L'/');
+      }
+    return out;
+    }
+    
+  std::string getenv(const std::string& name)
+    {
+  #ifdef _WIN32
+    std::wstring ws = jtk::convert_string_to_wstring(name);
+    wchar_t* path = _wgetenv(ws.c_str());
+    if (!path)
+      return nullptr;
+    std::wstring wresult(path);
+    std::string out = jtk::convert_wstring_to_string(wresult);
+  #else
+    std::string out(getenv(name.c_str()));
+  #endif
+    return out;
+    }
   }
 
 uint16_t ascii_to_utf16(unsigned char ch)
   {
   static std::vector<uint16_t> m = build_ascii_to_utf16_vector();
   return m[ch];
+  }
+
+std::string get_file_path(const std::string& filename)
+  {
+  if (!jtk::get_folder(filename).empty())
+    {
+    if (jtk::file_exists(filename))
+      return filename;
+    if (jtk::is_directory(jtk::get_folder(filename)))
+      return filename;
+    }
+
+#ifdef _WIN32
+  wchar_t buf[MAX_PATH];
+  GetCurrentDirectoryW(MAX_PATH, buf);
+  std::wstring wbuf(buf);
+  std::replace(wbuf.begin(), wbuf.end(), '\\', '/'); // replace all '\\' by '/'
+  std::string dir = jtk::convert_wstring_to_string(wbuf);
+#else
+  char buf[PATH_MAX];
+  getcwd(buf, sizeof(buf));
+  std::string dir(buf);
+#endif
+  auto possible_executables = jtk::get_files_from_directory(dir, false);
+  for (const auto& path : possible_executables)
+    {
+    auto f = jtk::get_filename(path);
+    if (f == filename || jtk::remove_extension(f) == filename)
+      {
+      return path;
+      }
+    }
+
+  auto executable_path = jtk::get_folder(jtk::get_executable_path());
+  possible_executables = jtk::get_files_from_directory(executable_path, false);
+  for (const auto& path : possible_executables)
+    {
+    auto f = jtk::get_filename(path);
+    if (f == filename || jtk::remove_extension(f) == filename)
+      {
+      return path;
+      }
+    }
+
+  std::string path = getenv(std::string("PATH"));
+
+#if defined(__APPLE__)
+  path.append(std::string(":/usr/local/bin"));
+#endif
+    
+#ifdef _WIN32
+  auto path_list = split_wstring_by_wchar(jtk::convert_string_to_wstring(path), L';');
+#else
+  auto path_list = split_wstring_by_wchar(jtk::convert_string_to_wstring(path), L':');
+#endif
+  
+  for (const auto& folder_in_path : path_list)
+    {
+    auto possible_files = jtk::get_files_from_directory(jtk::convert_wstring_to_string(folder_in_path), false);
+    for (const auto& possible_file : possible_files)
+      {
+      auto f = jtk::get_filename(possible_file);
+      if (f == filename || jtk::remove_extension(f) == filename)
+        {
+        return possible_file;
+        }
+      }
+    }
+  return "";
   }
