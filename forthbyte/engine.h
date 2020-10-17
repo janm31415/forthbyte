@@ -10,6 +10,7 @@ enum e_operation
   {
   op_editing,
   op_exit,
+  op_export,
   op_help,
   op_open,
   op_save,
@@ -28,6 +29,7 @@ struct app_state
   std::vector<e_operation> operation_stack;
   env_settings senv;
   bool playing;
+  std::string export_location;
   };
 
 

@@ -341,6 +341,7 @@ std::string get_operation_text(e_operation op)
   {
   switch (op)
     {
+    case op_export: return std::string("Export wav file: ");
     case op_open: return std::string("Open file: ");
     case op_save: return std::string("Save file: ");
     case op_query_save: return std::string("Save file: ");
@@ -373,8 +374,8 @@ void draw_help_text(app_state state)
   if (state.operation == op_editing)
     {
     static std::string line1("^N New    ^O Open   ^S Save   ^W Save as^C Copy   ^V Paste  ^Z Undo   ^Y Redo   ");
-    static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^R Restart^E Export ^A Sel/all");
-    static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^R Restart^E Export ^A Sel/all");
+    static std::string line2("^H Help   ^X Exit   ^B Build  ^P Play   ^K Stop   ^R Restart^E Export ^A Sel/all");
+    static std::string line3("^H Help   ^X Exit   ^B Build  ^P Pause  ^K Stop   ^R Restart^E Export ^A Sel/all");
     draw_help_line(line1, rows - 2, cols);
     if (state.playing)
       draw_help_line(line3, rows - 1, cols-1);
@@ -382,6 +383,11 @@ void draw_help_text(app_state state)
       draw_help_line(line2, rows - 1, cols-1);
     }
   if (state.operation == op_open)
+    {
+    static std::string line1("^X Cancel");
+    draw_help_line(line1, rows - 2, cols);
+    }
+  if (state.operation == op_export)
     {
     static std::string line1("^X Cancel");
     draw_help_line(line1, rows - 2, cols);
@@ -1069,6 +1075,12 @@ app_state put(app_state state)
     }
   return state;
   }
+  
+app_state export_file(app_state state, music& m)
+  {
+  m.set_session_filename(state.export_location);
+  return state;
+  }
 
 app_state save_file(app_state state)
   {
@@ -1131,6 +1143,7 @@ std::optional<app_state> ret_operation(app_state state, compiler& c, music& m)
       {
       case op_open: state = open_file(state, c, m); break;
       case op_save: state = save_file(state); break;
+      case op_export: state = export_file(state, m); break;
       case op_query_save: state = save_file(state); break;
       case op_new: state = make_new_buffer(state); break;
       case op_exit: return std::nullopt;
@@ -1230,6 +1243,14 @@ app_state redo(app_state state)
   else
     state.operation_buffer = redo(state.operation_buffer, state.senv);
   return check_scroll_position(state);
+  }
+  
+app_state export_location(app_state state)
+  {
+  state.operation = op_export;
+  state = clear_operation_buffer(state);
+  state.operation_buffer = insert(state.operation_buffer, state.export_location, state.senv, false);
+  return state;
   }
 
 app_state copy_to_snarf_buffer(app_state state)
@@ -1356,6 +1377,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           case SDLK_HOME: return move_home(state);
           case SDLK_END: return move_end(state);
           case SDLK_TAB: return tab(state);
+          case SDLK_KP_ENTER:
           case SDLK_RETURN: return ret(state, c, m);
           case SDLK_BACKSPACE: return backspace(state);
           case SDLK_DELETE: 
@@ -1405,6 +1427,13 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
             return copy_to_snarf_buffer(state);
             }
           }
+          case SDLK_e:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            return export_location(state);
+            }
+          }
           case SDLK_h:
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
@@ -1413,21 +1442,34 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
             return make_help_buffer(state);
             }
           }
+          case SDLK_k:
+          {
+          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+            {
+            state.message = string_to_line("[Stop]");
+            state.playing = false;
+            m.stop();
+            return state;
+            }
+          }
           case SDLK_p:
           {
           if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
             {
             if (state.playing)
               {
-              state.message = string_to_line("[Pause]");
-              m.stop();
+              m.toggle_pause();
+              if (m.is_paused())
+                state.message = string_to_line("[Pause]");
+              else
+                state.message = string_to_line("[Play]");
               }
             else
               {
-              state.message = string_to_line("[Play]");
               m.play();
+              state.message = string_to_line("[Play]");
+              state.playing = true;
               }
-            state.playing = !state.playing;
             return state;
             }
           }
@@ -1592,6 +1634,8 @@ engine::engine(int argc, char** argv) : m(&c)
     state.buffer = read_from_file(std::string(argv[1]));
   else
     state.buffer = make_empty_buffer();
+  state.export_location = jtk::get_folder(jtk::get_executable_path()) + std::string("session.wav");
+  m.set_session_filename(state.export_location);
   state.buffer = set_multiline_comments(state.buffer);
   state.buffer = init_lexer_status(state.buffer);  
   state.operation = op_editing;

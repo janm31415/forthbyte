@@ -17,6 +17,8 @@ class music
     void play();
 
     void stop();
+    
+    void toggle_pause();
 
     void reset_timer();
 
@@ -38,7 +40,11 @@ class music
 
     bool is_byte() const { return !_float; }
 
+    bool is_paused() const {return !_playing; }
+
     void record(unsigned char* stream, int len);
+    
+    void set_session_filename(const std::string& filename);
 
     uint32_t channels() const { return _channels; }
 
@@ -58,4 +64,6 @@ class music
     long data_chunk_pos;
     compiler* _comp;
     int32_t _left_value;
+    
+    std::string session_filename;
   };

@@ -6,6 +6,8 @@
 
 #include <cassert>
 
+#include <jtk/file_utils.h>
+
 namespace
   {
 
@@ -104,7 +106,7 @@ int32_t music::run_right(uint64_t t)
 void music::play()
   {
   stop();
-
+  _playing = true;
   SDL_AudioSpec wav_spec;
   SDL_zero(wav_spec);
   wav_spec.callback = my_audio_callback;
@@ -119,7 +121,7 @@ void music::play()
     exit(-1);
     }
 
-  out = fopen("session.wav", "wb");
+  out = fopen(session_filename.c_str(), "wb");
   if (out)
     {
     fwrite("RIFF----WAVEfmt ", 16, 1, out);
@@ -145,6 +147,18 @@ void music::play()
   _start = std::chrono::high_resolution_clock::now();
   SDL_PauseAudio(0);
 
+  }
+  
+void music::toggle_pause()
+  {
+  _playing = !_playing;
+  if (_playing)
+    {
+    SDL_PauseAudio(0);
+    } else
+    {
+    SDL_PauseAudio(1);
+    }
   }
 
 void music::stop()
@@ -179,7 +193,6 @@ uint64_t music::get_timer() const
 void music::set_sample_rate(uint32_t sample_rate)
   {
   _sample_rate = sample_rate;
-
   }
 
 uint64_t music::get_estimated_timer_based_on_clock() const
@@ -202,4 +215,9 @@ void music::record(unsigned char* stream, int len)
     {
     fwrite((const void*)stream, 1, len, out);
     }
+  }
+
+void music::set_session_filename(const std::string& filename)
+  {
+  session_filename = filename;
   }
