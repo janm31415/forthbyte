@@ -27,6 +27,25 @@ namespace
   {
   int font_width, font_height;
   }
+  
+bool ctrl_pressed()
+  {
+#if defined(__APPLE__)
+  if (keyb.is_down(SDLK_LGUI) || keyb.is_down(SDLK_RGUI))
+    return true;
+#endif
+  return (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL));
+  }
+
+bool alt_pressed()
+  {
+  return (keyb.is_down(SDLK_LALT) || keyb.is_down(SDLK_RALT));
+  }
+
+bool shift_pressed()
+  {
+  return (keyb.is_down(SDLK_LSHIFT) || keyb.is_down(SDLK_RSHIFT));
+  }
 
 void get_editor_window_size(int& rows, int& cols)
   {
@@ -1465,35 +1484,35 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_a:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return select_all(state);
             }
           }
           case SDLK_b: // build
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return compile_buffer(state, c, m);
             }
           }
           case SDLK_c:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return copy_to_snarf_buffer(state);
             }
           }
           case SDLK_e:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return export_location(state);
             }
           }
           case SDLK_h:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             state.operation = op_help;
             return make_help_buffer(state);
@@ -1501,7 +1520,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_k:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             state.message = string_to_line("[Stop]");
             state.playing = false;
@@ -1513,7 +1532,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_p:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             if (state.playing)
               {
@@ -1536,7 +1555,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_n:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             switch (state.operation)
               {
@@ -1553,7 +1572,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_o:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             state.operation = op_open;
             return clear_operation_buffer(state);
@@ -1561,7 +1580,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_r:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             state.message = string_to_line("[Restart]");
             m.reset_timer();
@@ -1570,7 +1589,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_s:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             if (state.buffer.name.empty())
               {
@@ -1585,14 +1604,14 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_v:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return paste_from_snarf_buffer(state);
             }
           }
           case SDLK_w:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             state.operation = op_save;
             return make_save_buffer(state);
@@ -1600,7 +1619,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_x:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return cancel(state);
             }
@@ -1608,7 +1627,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_y:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             switch (state.operation)
               {
@@ -1624,7 +1643,7 @@ std::optional<app_state> process_input(app_state state, compiler& c, music& m)
           }
           case SDLK_z:
           {
-          if (keyb.is_down(SDLK_LCTRL) || keyb.is_down(SDLK_RCTRL))
+          if (ctrl_pressed())
             {
             return undo(state);
             }
