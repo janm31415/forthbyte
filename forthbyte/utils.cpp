@@ -168,21 +168,6 @@ namespace
       }
     return out;
     }
-    
-  std::string getenv(const std::string& name)
-    {
-  #ifdef _WIN32
-    std::wstring ws = jtk::convert_string_to_wstring(name);
-    wchar_t* path = _wgetenv(ws.c_str());
-    if (!path)
-      return nullptr;
-    std::wstring wresult(path);
-    std::string out = jtk::convert_wstring_to_string(wresult);
-  #else
-    std::string out(getenv(name.c_str()));
-  #endif
-    return out;
-    }
   }
 
 uint16_t ascii_to_utf16(unsigned char ch)
@@ -233,7 +218,7 @@ std::string get_file_path(const std::string& filename)
       }
     }
 
-  std::string path = getenv(std::string("PATH"));
+  std::string path = jtk::getenv(std::string("PATH"));
 
 #if defined(__APPLE__)
   path.append(std::string(":/usr/local/bin"));
