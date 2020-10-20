@@ -775,7 +775,10 @@ namespace forth
     {
     T b = pop();
     T a = pop();
-    push(a * b);
+    if (a == 0 || b == 0) // multiplying with infinity gives 0
+      push(0);
+    else
+      push(a * b);
     }
 
   template <class T, int N>
