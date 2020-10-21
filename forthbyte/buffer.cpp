@@ -1157,8 +1157,6 @@ file_buffer find_text(file_buffer fb, text txt)
     pos = *fb.start_selection;
   if (pos == lastpos)
     pos.col = pos.row = 0;
-  else
-    pos = get_next_position(fb, pos);
   wchar_t current_text_char = txt[text_pos.row][text_pos.col];
   wchar_t first_text_char = txt[text_pos.row][text_pos.col];
   while (pos != lastpos)
