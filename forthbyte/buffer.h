@@ -112,6 +112,8 @@ bool has_nontrivial_selection(file_buffer fb, const env_settings& s);
 
 void get_rectangular_selection(int64_t& min_row, int64_t& max_row, int64_t& min_x, int64_t& max_x, file_buffer fb, position p1, position p2, const env_settings& s);
 
+position get_actual_position(file_buffer fb, position pos);
+
 position get_actual_position(file_buffer fb);
 
 file_buffer make_empty_buffer();

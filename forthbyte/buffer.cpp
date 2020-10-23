@@ -178,9 +178,9 @@ file_buffer save_to_file(bool& success, file_buffer fb, const std::string& filen
   return fb;
   }
 
-position get_actual_position(file_buffer fb)
+position get_actual_position(file_buffer fb, position pos)
   {
-  position out = fb.pos;
+  position out = pos;
   if (out.row < 0 || out.col < 0)
     return out;
   if (fb.pos.row >= fb.content.size())
@@ -211,6 +211,11 @@ position get_actual_position(file_buffer fb)
       }
     }
   return out;
+  }
+
+position get_actual_position(file_buffer fb)
+  {
+  return get_actual_position(fb, fb.pos);
   }
 
 uint32_t character_width(uint32_t character, int64_t x_pos, const env_settings& s)
@@ -1149,7 +1154,7 @@ file_buffer find_text(file_buffer fb, text txt)
     return fb;
   fb.rectangular_selection = false;
   position lastpos = get_last_position(fb);
-  position pos = get_actual_position(fb);
+  position pos = fb.pos;
   position text_pos(0, 0);
   position lasttext = get_last_position(txt);
   position first_encounter;
@@ -1157,6 +1162,7 @@ file_buffer find_text(file_buffer fb, text txt)
     pos = *fb.start_selection;
   if (pos == lastpos)
     pos.col = pos.row = 0;
+  pos = get_actual_position(fb, pos);
   wchar_t current_text_char = txt[text_pos.row][text_pos.col];
   wchar_t first_text_char = txt[text_pos.row][text_pos.col];
   while (pos != lastpos)
