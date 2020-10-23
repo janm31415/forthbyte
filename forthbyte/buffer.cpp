@@ -1149,7 +1149,7 @@ file_buffer find_text(file_buffer fb, text txt)
     return fb;
   fb.rectangular_selection = false;
   position lastpos = get_last_position(fb);
-  position pos = fb.pos;
+  position pos = get_actual_position(fb);
   position text_pos(0, 0);
   position lasttext = get_last_position(txt);
   position first_encounter;
