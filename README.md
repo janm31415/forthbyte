@@ -22,7 +22,7 @@ There are already a bunch of very nice bytebeat and floatbeat generators availab
 - [Rampcode](https://github.com/gabochi/rampcode)
 - probably many others
 
-Forthbyte is my attempt at generating a bytebeat and floatbeat machine using a dialect of the language Forth.
+Forthbyte is my attempt at generating a bytebeat and floatbeat machine using a dialect of the language Forth. If you want to try it out, you can take a look at some examples in the examples subfolder.
 
 Screenshot
 ----------
@@ -59,3 +59,70 @@ Building
 2.) Download the SDL2-ttf framework from the [ttf-2.0.15](https://www.libsdl.org/projects/SDL_ttf/) website and install in /Library/Frameworks/
 
 3.) Use CMake to generate a XCode project and build.
+
+Glossary
+--------
+
+### Preprocessor directives
+
+`#byte` use bytebeat
+
+`#float` use floatbeat (this is the default)
+
+`#samplerate nr` set the sample rate (default value is 8000)
+
+`#initmemory a b c ... ` initializes the memory with the values given by `a`, `b`, `c`, ... . There are 256 memory spots available.
+
+### Predefined variables
+
+`t` the timer
+
+`sr` the current samplerate that was set by the preprocessor directive `#samplerate`
+
+`c` the current channel. It's possible to use stereo. The left channel has a value of `c` equal to 0, and the right channel has a value equal to 1.
+
+### Forth words
+
+The Forth stack has 256 entries. If you go over this amount, the counter resets to zero, so you never can get a stack overflow.
+
+`+` ( a b -- c ) Pops the two top values from the stack, and pushes their sum on the stack.
+
+`-` ( a b -- c )  Pops the two top values from the stack, and pushes their subtraction on the stack.
+
+`*` ( a b -- c )  Pops the two top values from the stack, and pushes their multiplication on the stack.
+
+`/` ( a b -- c )  Pops the two top values from the stack, and pushes their division on the stack.
+
+`<<` ( a b -- c )  Pops the two top values from the stack, and pushes their left shift on the stack.
+
+`>>` ( a b -- c )  Pops the two top values from the stack, and pushes their right shift on the stack.
+
+`&` ( a b -- c )  Pops the two top values from the stack, and pushes their binary and on the stack.
+
+`|` ( a b -- c )  Pops the two top values from the stack, and pushes their binary or on the stack.
+
+`^` ( a b -- c )  Pops the two top values from the stack, and pushes their binary xor on the stack.
+
+`%` ( a b -- c )  Pops the two top values from the stack, and pushes their modulo on the stack.
+
+`<` ( a b -- c )  Pops the two top values from the stack, compares them with `<`, and puts 0 on the stack if the comparison fails, 1 otherwise.
+
+`>` ( a b -- c )  Pops the two top values from the stack, compares them with `>`, and puts 0 on the stack if the comparison fails, 1 otherwise.
+
+`<=` ( a b -- c )  Pops the two top values from the stack, compares them with `<=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
+
+`>=` ( a b -- c )  Pops the two top values from the stack, compares them wiht `>=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
+
+`=` ( a b -- c )  Pops the two top values from the stack, compares them with `=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
+
+`<>` ( a b -- c )  Pops the two top values from the stack, compares them with `<>` (not equal), and puts 0 on the stack if the comparison fails, 1 otherwise.
+
+`@` ( a -- b ) Pops the top value from the stack, gets the value at memory address `a`, and pushes this value on the stack.
+
+`!` ( a b -- ) Pops the two top values from the stack, and stores value `a` at memory address `b`.
+
+`>r` ( a -- ) Pops the top value from the stack, and moves it to the return stack. The return stack has 256 entries.
+
+`r>` ( -- a ) Pops the top value from the return stack, and moves it to the regular stack. 
+
+`: ;` Define a new word, e..g. `: twice 2 * ;` defines the word `twice`, so that `3 twice` equals `3 2 *` equals `6`.
