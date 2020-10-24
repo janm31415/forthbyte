@@ -126,3 +126,45 @@ The Forth stack has 256 entries. If you go over this amount, the counter resets 
 `r>` ( -- a ) Pops the top value from the return stack, and moves it to the regular stack. 
 
 `: ;` Define a new word, e..g. `: twice 2 * ;` defines the word `twice`, so that `3 twice` equals `3 2 *` equals `6`.
+
+`abs` ( a -- b ) Pops the top value from the stack, and pushes the absolue value on the stack.
+
+`atan2` ( a b -- c ) Pops the two top values from the stack, and pushes atan2(a, b) on the stack.
+
+`ceil` ( a -- b ) Pops the top value from the stack, rounds the value up, and pushes this value on the stack.
+
+`cos` ( a -- b ) Pops the top value from the stack, and pushes the cosine on the stack.
+
+`exp` ( a -- b ) Pops the top value from the stack, and pushes the exponential on the stack.
+
+`floor` ( a -- b ) Pops the top value from the stack, rounds the value down, and pushes this value on the stack.
+
+`log` ( a -- b ) Pops the top value from the stack, and pushes the logarithm on the stack.
+
+`max` ( a b -- c ) Pops the two top values from the stack, and pushes their maximum on the stack.
+
+`min` ( a b -- c ) Pops the two top values from the stack, and pushes their minimum on the stack.
+
+`negate` ( a -- b ) Pops the top value from the stack, and pushes the negative value on the stack.
+
+`nip` ( a b -- b )  Drop the first item below the top of the stack.
+
+`not` ( a -- b ) Pops the top value from the stack, and pushes the binary not on the stack.
+
+`over` ( a b -- a b a )  Duplicate the element under the top stack element.
+
+`pow` ( a b -- c ) Pops the two top values from the stack, and pushes `a` to the power `b` on the stack.
+
+`rot` ( a b c -- b c a ) Rotate the three top elements on the stack.
+
+`-rot` ( a b c -- c a b ) Reverse rotate the three top elements on the stack.
+
+`sin` ( a -- b ) Pops the top value from the stack, and pushes the sine on the stack.
+
+`sqrt` ( a -- b ) Pops the top value from the stack, and pushes the square root on the stack.
+
+`swap` ( a b -- b a ) Swaps the two top positions on the stack.
+
+`tan` ( a -- b ) Pops the top value from the stack, and pushes the tangent on the stack.
+
+`tuck` ( a b -- b a b )  Copy the top stack item below the second stack item.
