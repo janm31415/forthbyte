@@ -1,0 +1,68 @@
+/*
+Drum beat with base / robot melody / percussion
+
+Playing around while using ideas from 
+  https://github.com/Qqwy/ExtremeBytebeats
+and
+  https://toplap.org/bytebeat-floatbeat-rampcode/
+*/
+
+#samplerate 44100
+#float
+
+#initmemory 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0    0 0 1 0 0 0 1 1    1 0 0 1 1 0 1 0   65 65 65 65 65 65 65 67 61 61 61 61 63 63 63 63   0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 0 0 0 0  0 0 0 0 1 1 1 1
+
+0
+
+: t2 t 2 / ; // speed
+
+// ( t -- rand )
+: rand dup cos * cos ;
+
+// ( ocshift gain -- noise  )
+: noise t rot >> rand *  ;
+
+// ( gain -- kick  )
+: kick t2 8192 % sqrt 6 << 255 & 127 / 1 - *;
+
+// ( shiftspeed mod offset -- pattern )
+: pattern rot t2 swap >> rot % + @ ;
+
+// ( d -- decay )
+: decay dup dup 0 > -rot t2 swap % swap / 1 swap - * ;
+
+// ( gain ocshift tone -- saw )
+: saw 12 / swap - 2 swap pow t * 255 % 127 / 1 - * ;  
+
+: pattern1 11 16 0 pattern ;
+: pattern2 13 8 16 pattern ;
+: pattern3 13 8 24 pattern ;
+: pattern4 14 16 32 pattern;
+: pattern5 11 32 48 pattern ;
+
+
+1 0.2 noise pattern1 11 << decay *  // hihat
+
+3 0.25 noise pattern2 13 << decay * +  // snare
+
+0.7 kick pattern3 13 << decay * +  // kick
+
+0.7 0.15 noise pattern5  * +   // hihat slide
+
+0.7 6 pattern4 saw 1 12 << decay * +   // base
+
+: beat2 50000 t2 rot % / sin ;
+: tom1 2000 t2 rot % / t 20 / sin * sin ;
+: beat1 2000 t2 rot % / t 100 / sin * sin ;
+
+8192 tom1 t2 8192 / sin  * pattern1 12 << decay * t2 1 16 << / sin *    +
+8192 beat1 t2 8192 / sin  * pattern1 12 << decay * t2 1 16 << / cos *    +
+8192 beat2 t2 8192 / sin  * pattern1 12 << decay * t2 1 16 << / 3.1415926 2 / + sin *    +
+
+t 8192 / floor 256 % t 4 >> * sin 0.3 * +   // robot melody
+
+: t3 t2 5 / ;
+
+t3 t3 7 / sin t3 3000 / sin 100 * * + sin 1 t3 t3 16000 / 5 % 1 + floor 0.25 * * 1000 % 1000 / - 8 pow 0.33 * t3 16000 % 8000 > * * 4 * +
+
+//0.3 6 65 saw
