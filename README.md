@@ -135,6 +135,12 @@ The Forth stack has 256 entries. If you go over this amount, the counter resets 
 
 `cos` ( a -- b ) Pops the top value from the stack, and pushes the cosine on the stack.
 
+`drop` ( a -- )  Pop the top element of the stack.
+
+`dup` ( a -- a a )  Duplicate the value on the top of the stack.
+
+`2dup` ( a b -- a b a b ) Duplicate the top two elements on the stack.
+
 `exp` ( a -- b ) Pops the top value from the stack, and pushes the exponential on the stack.
 
 `floor` ( a -- b ) Pops the top value from the stack, rounds the value down, and pushes this value on the stack.
@@ -152,6 +158,8 @@ The Forth stack has 256 entries. If you go over this amount, the counter resets 
 `not` ( a -- b ) Pops the top value from the stack, and pushes the binary not on the stack.
 
 `over` ( a b -- a b a )  Duplicate the element under the top stack element.
+
+`pick` ( a_b ... a_1 a_0 b -- a_b ... a_1 a_0 a_b )  Remove b from the stack and copy a_b to the top of the stack.
 
 `pow` ( a b -- c ) Pops the two top values from the stack, and pushes `a` to the power `b` on the stack.
 
