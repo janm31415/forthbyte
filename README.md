@@ -83,7 +83,7 @@ Glossary
 
 ### Forth words
 
-The Forth stack has 256 entries. If you go over this amount, the counter resets to zero, so you never can get a stack overflow.
+The Forth stack has 256 entries. If you go over this amount, the counter resets to zero, so you never can get a stack overflow. Similar for the memory entries, or the Forth return stack.
 
 `+` ( a b -- c ) Pops the two top values from the stack, and pushes their sum on the stack.
 
