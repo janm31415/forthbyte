@@ -1,5 +1,5 @@
 # forthbyte
-Bytebeat and floatbeat machine
+Bytebeat and floatbeat machine.
 
 Bytebeat is a type of music made from mathematical formulas, first discovered by [Viznut](http://viznut.fi/en/) in 2011.
 The idea is that `t` represents a timer, infinitely increasing. In most cases `t` increases 8000 times per second (for a 8000Hz bytebeat song), but you can also let `t` represent a 44100Hz timer if you like.
@@ -9,11 +9,24 @@ If you take the next formula with a 8000Hz timer
     
 then a bytebeat generator will compute the above formula 8000 times per second for the corresponding value of `t`. Next the result (which can be a large value) is brought back to 8 bit by only retaining the remainder of the integer division by 256. This 8-bit value is sent to the speakers. The above formula sounds like [this](https://greggman.com/downloads/examples/html5bytebeat/html5bytebeat.html#t=0&e=0&s=8000&bb=5d000001000c00000000000000003a080b8211271601699e47dc7a96bdeefffe47b000).
 
-Floatbeat is very similar to bytebeat. The difference is that the formula can use floating point (decimal) computations, and the result is expected to be in the interval `[-1, 1]`. Again this value is reworked to a 8-bit value and send to the speakers. The advantage of floatbeat is that it is more natural here to work with sine and cosine functions. The next formula with a 44100Hz timer
+Floatbeat is very similar to bytebeat. The difference is that the formula can use floating point (decimal) computations, and the result is expected to be in the interval `[-1, 1]`. Again this value is reworked to a 8-bit value and sent to the speakers. The advantage of floatbeat is that it is more natural here to work with sine and cosine functions. The next formula with a 44100Hz timer
 
     sin(440*t*3.1415926535*2/44100)
 
 generates a 440Hz tone, like [this](https://greggman.com/downloads/examples/html5bytebeat/html5bytebeat.html#t=1&e=0&s=44100&bb=5d000001001f0000000000000000399a4a1a8961f80549b689502166e2852d12e851ce4a54854c282dd601f86f25b2bfffd47d0000).
+
+There are already a bunch of very nice bytebeat and floatbeat generators available, such as
+- [Greggman's html5bytebeat](https://github.com/greggman/html5bytebeat)
+- [Viznut's IBNIZ](http://pelulamu.net/ibniz/)
+- [Wurstcaptures](http://wurstcaptures.untergrund.net/music/)
+- [Rampcode](https://github.com/gabochi/rampcode)
+- probably many others
+
+Forthbyte is my attempt at generating a bytebeat and floatbeat machine using a dialect of the language Forth.
+
+Screenshot
+----------
+![](images/forthbyte.png)
 
 Building
 --------
