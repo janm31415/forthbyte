@@ -114,7 +114,7 @@ The Forth stack has 256 entries. If you go over this amount, the counter resets 
 
 `<=` ( a b -- c )  Pops the two top values from the stack, compares them with `<=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
 
-`>=` ( a b -- c )  Pops the two top values from the stack, compares them wiht `>=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
+`>=` ( a b -- c )  Pops the two top values from the stack, compares them with `>=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
 
 `=` ( a b -- c )  Pops the two top values from the stack, compares them with `=`, and puts 0 on the stack if the comparison fails, 1 otherwise.
 
