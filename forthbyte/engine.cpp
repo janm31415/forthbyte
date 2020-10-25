@@ -1404,6 +1404,7 @@ Editor commands
 ^A        : Select all
 ^B        : Build the current buffer. If you are playing, the new compiled
             song will continue playing.
+^C        : Copy to the clipboard (pbcopy on MacOs, xclip on Linux)            
 ^E        : Whenever you play, the song is recorded on disk to a wav file.
             With this command you can set the output file. If not set by 
             ^E, the default output file is session.wav in your forthbyte 

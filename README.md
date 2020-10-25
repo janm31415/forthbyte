@@ -63,6 +63,27 @@ Building
 
 3.) Use CMake to generate a XCode project and build.
 
+Editor commands
+---------------
+^A        : Select all
+^B        : Build the current buffer. If you are playing, the new compiled song will continue playing.
+^C        : Copy to the clipboard (pbcopy on MacOs, xclip on Linux)            
+^E        : Whenever you play, the song is recorded on disk to a wav file. With this command you can set the output file. If not set by ^E, the default output file is session.wav in your forthbyte 
+            binaries folder.
+^N        : Make an empty buffer
+^P        : Play / pause
+^H        : Show tis help text
+^K        : Stop playing
+^O        : Open a file
+^R        : Restart the timer `t`
+^S        : Save the current file
+^W        : Save the current file as 
+^V        : Paste from the clipboard (pbpaste on MacOs, xclip on Linux)
+^X        : Exit this application, or cancel the current operation
+^Y        : Redo
+^Z        : Undo
+
+
 Glossary
 --------
 
