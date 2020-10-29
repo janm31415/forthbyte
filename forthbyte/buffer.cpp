@@ -1580,7 +1580,7 @@ std::string get_row_indentation_pattern(file_buffer fb, position pos)
       return out;
     }
   int64_t col = 0;
-  while (col < ln.size() && (ln[col] == L' ' || ln[col] == L'\t'))
+  while (col < pos.col && col < ln.size() && (ln[col] == L' ' || ln[col] == L'\t'))
     {
     out.push_back((char)ln[col]);
     ++col;
