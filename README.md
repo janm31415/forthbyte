@@ -37,7 +37,7 @@ Building
 
 1.) Download and build [SDL2](https://www.libsdl.org/) (and install in C:\program files\sdl2 or any other location but then you'll need to update the CMakeLists.txt files with this new location)
 
-2.) Download and build [freetype-2.4.8](https://www.freetype.org/download.html) for x64bit using the sln file provided in folder builds/win32/vc2010
+2.) Download and build [freetype-2.9.1](https://www.freetype.org/download.html) for x64bit using the sln file provided in folder builds/win32/vc2010
 
 3.) Download and build [ttf-2.0.15](https://www.libsdl.org/projects/SDL_ttf/) using CMake, point to the correct freetype location. Press "Advanced" in CMakeGui to set the links to the lib files if these links are not visible by default.
 
