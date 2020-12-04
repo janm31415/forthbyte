@@ -1,27 +1,3 @@
-if (WIN32)
-
-set(SDL_INCLUDE_DIR "C:/Program Files/SDL2/include/SDL2/")
-set(SDL_LIBRARIES "C:/Program Files/SDL2/lib/SDL2.lib" "C:/Program Files/SDL2/lib/SDL2main.lib")
-
-set(SDL_TTF_INCLUDE_DIR "C:/Program Files/SDL_ttf/include/SDL2")
-set(SDL_TTF_LIBRARIES "C:/Program Files/SDL_ttf/lib/SDL2_ttf.lib" "C:/Program Files/SDL_ttf/lib/freetype.lib")
-
-endif (WIN32)
-
-if (UNIX)
-  set(SDL_INCLUDE_DIR "/usr/include/SDL2/")
-  set(SDL_LIBRARIES "/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so" "/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0")
-  set(SDL_TTF_INCLUDE_DIR "/usr/include/SDL2/")
-  set(SDL_TTF_LIBRARIES "/usr/lib/x86_64-linux-gnu/libSDL2_ttf-2.0.so" "/usr/lib/x86_64-linux-gnu/libSDL2_ttf-2.0.so.0")
-endif (UNIX)
-
-if (APPLE)
-  set(SDL_INCLUDE_DIR "/Library/Frameworks/SDL2.framework/Headers/")
-  set(SDL_LIBRARIES "/Library/Frameworks/SDL2.framework/SDL2")
-  set(SDL_TTF_INCLUDE_DIR "/Library/Frameworks/SDL2_ttf.framework/Headers/")
-  set(SDL_TTF_LIBRARIES "/Library/Frameworks/SDL2_ttf.framework/SDL2_ttf")
-endif (APPLE)
-
 set(HDRS
 buffer.h
 clipboard.h
@@ -87,13 +63,14 @@ source_group("ThirdParty/json" FILES ${JSON})
     ${CMAKE_CURRENT_SOURCE_DIR}/../cpp-rrb/
     ${CMAKE_CURRENT_SOURCE_DIR}/../jtk/
     ${CMAKE_CURRENT_SOURCE_DIR}/../pdcurses/     
-    ${SDL_INCLUDE_DIR}
-    ${SDL_TTF_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../SDL2/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../SDL2_ttf/
     )	
 	
 target_link_libraries(forthbyte
     PRIVATE 
     pdcurses
-    ${SDL_LIBRARIES}
-    ${SDL_TTF_LIBRARIES}
+    SDL2
+    SDL2main
+    SDL2_ttf
     )	
