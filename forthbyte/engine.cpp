@@ -6,8 +6,10 @@
 #include "preprocessor.h"
 #include "utils.h"
 
-#include <jtk/file_utils.h>
-#include <jtk/pipe.h>
+#define JTK_FILE_UTILS_IMPLEMENTATION
+#include "jtk/file_utils.h"
+#define JTK_PIPE_IMPLEMENTATION
+#include "jtk/pipe.h"
 
 #include <SDL.h>
 #include <SDL_syswm.h>

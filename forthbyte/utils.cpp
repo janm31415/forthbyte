@@ -186,17 +186,7 @@ std::string get_file_path(const std::string& filename)
       return filename;
     }
 
-#ifdef _WIN32
-  wchar_t buf[MAX_PATH];
-  GetCurrentDirectoryW(MAX_PATH, buf);
-  std::wstring wbuf(buf);
-  std::replace(wbuf.begin(), wbuf.end(), '\\', '/'); // replace all '\\' by '/'
-  std::string dir = jtk::convert_wstring_to_string(wbuf);
-#else
-  char buf[PATH_MAX];
-  getcwd(buf, sizeof(buf));
-  std::string dir(buf);
-#endif
+  std::string dir = jtk::get_cwd();
   auto possible_executables = jtk::get_files_from_directory(dir, false);
   for (const auto& path : possible_executables)
     {
