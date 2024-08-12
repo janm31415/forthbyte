@@ -30,7 +30,7 @@ int main(int argc, char** argv)
     }
   SDL_GL_SetSwapInterval(1);
   atexit(SDL_Quit);
-
+  TTF_Init();
 
   /* Initialize PDCurses */
 
@@ -54,7 +54,6 @@ int main(int argc, char** argv)
 
   engine e(argc, argv);
   e.run();
-
 
   endwin();
 
